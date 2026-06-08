@@ -1,26 +1,69 @@
 @import "tailwindcss";
 
+/*
+  Vikarhjelp design system.
+  Calm, professional, desktop-first. Warm-neutral surface palette + one accent
+  (a restrained slate-blue) + strong, legible status colours.
+*/
+
+@theme {
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  /* Accent — single brand colour */
+  --color-brand-50: #eef3fb;
+  --color-brand-100: #d8e3f5;
+  --color-brand-200: #b4c8ea;
+  --color-brand-300: #85a4da;
+  --color-brand-400: #557dc6;
+  --color-brand-500: #355faf;
+  --color-brand-600: #294b94;
+  --color-brand-700: #233e78;
+  --color-brand-800: #213763;
+  --color-brand-900: #1f3053;
+
+  /* Warm neutral surfaces */
+  --color-surface: #ffffff;
+  --color-canvas: #f6f6f4;
+  --color-ink: #1c1c1a;
+  --color-muted: #6b6b66;
+  --color-line: #e6e5e1;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: var(--color-canvas);
+  --foreground: var(--color-ink);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  html {
+    color-scheme: light;
+  }
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+  }
+  /* Tabular numerals make the timetable/period grids line up cleanly */
+  table,
+  .tabular {
+    font-variant-numeric: tabular-nums;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Status semantic colours used across the app:
+   green = covered, amber = pending, red = uncovered, sky = co-teacher */
+@layer components {
+  .status-covered {
+    @apply bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20;
+  }
+  .status-pending {
+    @apply bg-amber-50 text-amber-700 ring-1 ring-amber-600/20;
+  }
+  .status-uncovered {
+    @apply bg-red-50 text-red-700 ring-1 ring-red-600/20;
+  }
+  .status-coteacher {
+    @apply bg-sky-50 text-sky-700 ring-1 ring-sky-600/20;
+  }
 }
