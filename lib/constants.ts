@@ -1,23 +1,24 @@
 // Shared, app-wide constants. Code/identifiers in English; user-facing strings
 // in Norwegian (bokmål) since the principal is the only user.
 
-/** Periods per school day. The grid runs period 1..PERIOD_COUNT. */
-export const PERIOD_COUNT = 8;
+/**
+ * Periods ("timer") per school day. The grid runs period 1..PERIOD_COUNT.
+ * This is a Montessori school with two long work cycles per day, so 2.
+ * Change this single value to support a different number of periods.
+ */
+export const PERIOD_COUNT = 2;
 export const PERIODS: number[] = Array.from(
   { length: PERIOD_COUNT },
   (_, i) => i + 1,
 );
 
-/** Default clock for each period (display only; used to prefill the editor). */
+/**
+ * Default clock for each period (display only; used to prefill the editor).
+ * Two Montessori work cycles: a long morning block and an afternoon block.
+ */
 export const PERIOD_TIMES: Record<number, { start: string; end: string }> = {
-  1: { start: "08:30", end: "09:15" },
-  2: { start: "09:15", end: "10:00" },
-  3: { start: "10:15", end: "11:00" },
-  4: { start: "11:00", end: "11:45" },
-  5: { start: "12:15", end: "13:00" },
-  6: { start: "13:00", end: "13:45" },
-  7: { start: "13:55", end: "14:40" },
-  8: { start: "14:40", end: "15:25" },
+  1: { start: "08:30", end: "11:30" },
+  2: { start: "12:30", end: "15:00" },
 };
 
 /** Weekdays Monday=1 .. Friday=5 (the only schedulable days). */

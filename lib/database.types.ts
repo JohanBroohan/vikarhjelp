@@ -31,7 +31,7 @@ export type Lesson = {
   id: string;
   teacher_id: string;
   weekday: number; // 1..5
-  period: number; // 1..8 — canonical scheduling slot
+  period: number; // 1..PERIOD_COUNT — canonical scheduling slot
   start_time: string | null;
   end_time: string | null;
   subject: string | null;
