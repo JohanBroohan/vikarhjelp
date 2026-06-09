@@ -59,10 +59,12 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-secret-key
 ```
 
 ### Step 4 — Create the database tables
-In the Supabase dashboard: **SQL Editor → New query**. Run the two migration
-files **in order** (open each file, copy its contents, paste, click *Run*):
-1. `supabase/migrations/0001_initial_schema.sql`
-2. `supabase/migrations/0002_rls_policies.sql`
+In the Supabase dashboard: **SQL Editor → New query**. Run **every** migration
+file in `supabase/migrations/` **in numeric order** (open each, copy its
+contents, paste, click *Run*):
+1. `0001_initial_schema.sql`
+2. `0002_rls_policies.sql`
+3. `0003_absence_time_window.sql`
 
 (If you prefer the Supabase CLI, `supabase db push` works too — but the SQL
 editor is the simplest first-time path.)

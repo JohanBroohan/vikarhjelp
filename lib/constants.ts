@@ -21,6 +21,40 @@ export const PERIOD_TIMES: Record<number, { start: string; end: string }> = {
   2: { start: "12:30", end: "15:00" },
 };
 
+/** The school day's outer bounds, derived from the first/last period. */
+export const SCHOOL_DAY_START = PERIOD_TIMES[1].start;
+export const SCHOOL_DAY_END = PERIOD_TIMES[PERIOD_COUNT].end;
+
+/**
+ * Effective clock times for a lesson — its own start/end if set, otherwise the
+ * default period clock. Used to decide whether a lesson falls inside a
+ * partial-day absence window.
+ */
+export function lessonClock(lesson: {
+  period: number;
+  start_time: string | null;
+  end_time: string | null;
+}): { start: string; end: string } {
+  return {
+    start: lesson.start_time || PERIOD_TIMES[lesson.period]?.start || "00:00",
+    end: lesson.end_time || PERIOD_TIMES[lesson.period]?.end || "23:59",
+  };
+}
+
+/**
+ * Does a lesson overlap an absence time window? `window` of null means the
+ * teacher is out the whole day, so every lesson is included. Times are "HH:MM"
+ * strings, which compare correctly lexicographically.
+ */
+export function lessonInWindow(
+  lesson: { period: number; start_time: string | null; end_time: string | null },
+  window: { from: string; to: string } | null,
+): boolean {
+  if (!window) return true;
+  const { start, end } = lessonClock(lesson);
+  return start < window.to && end > window.from;
+}
+
 /** Weekdays Monday=1 .. Friday=5 (the only schedulable days). */
 export const WEEKDAYS = [1, 2, 3, 4, 5] as const;
 export type Weekday = (typeof WEEKDAYS)[number];

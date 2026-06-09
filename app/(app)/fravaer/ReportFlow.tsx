@@ -4,7 +4,13 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { Teacher } from "@/lib/database.types";
 import type { LessonCoverage } from "@/lib/coverage";
-import { PERIOD_TIMES, WEEKDAY_NAMES } from "@/lib/constants";
+import {
+  PERIOD_TIMES,
+  WEEKDAY_NAMES,
+  SCHOOL_DAY_START,
+  SCHOOL_DAY_END,
+  lessonInWindow,
+} from "@/lib/constants";
 import { formatDateLong, capitalize, pluralTeachers } from "@/lib/format";
 import { Button, Card, Field, Select } from "@/components/ui";
 import { PhoneLink } from "@/components/PhoneLink";
@@ -31,9 +37,13 @@ export function ReportFlow({
   const [data, setData] = useState<ReportData | null>(null);
   const [decisions, setDecisions] = useState<Record<string, LessonDecision>>({});
   const [error, setError] = useState<string | null>(null);
-  const [savedOk, setSavedOk] = useState(false);
   const [loading, startLoad] = useTransition();
   const [saving, startSave] = useTransition();
+
+  // Absence time window: whole day, or a specific range like 11:00–12:30.
+  const [wholeDay, setWholeDay] = useState(true);
+  const [winFrom, setWinFrom] = useState(SCHOOL_DAY_START);
+  const [winTo, setWinTo] = useState(SCHOOL_DAY_END);
 
   // (Re)load the plan whenever teacher or date changes. All state updates run
   // inside the transition callback (never synchronously in the effect body).
@@ -52,16 +62,24 @@ export function ReportFlow({
       setError(null);
       setData(res.data!);
       setDecisions(buildInitialDecisions(res.data!));
-      setSavedOk(false);
+      // Prefill the window from a previously-saved partial-day absence.
+      const w = res.data!.absenceWindow;
+      setWholeDay(!w);
+      setWinFrom(w?.from ?? SCHOOL_DAY_START);
+      setWinTo(w?.to ?? SCHOOL_DAY_END);
     });
   }, [teacherId, date]);
+
+  const window = wholeDay ? null : { from: winFrom, to: winTo };
+  const visibleLessons = (data?.lessons ?? []).filter((lc) =>
+    lessonInWindow(lc.lesson, window),
+  );
 
   function setDecision(lessonId: string, patch: Partial<LessonDecision>) {
     setDecisions((prev) => ({
       ...prev,
       [lessonId]: { ...prev[lessonId], lessonId, ...patch } as LessonDecision,
     }));
-    setSavedOk(false);
   }
 
   function save() {
@@ -71,13 +89,15 @@ export function ReportFlow({
       const res = await saveCoverage({
         date,
         absentTeacherId: teacherId,
-        decisions: data.lessons.map((l) => decisions[l.lesson.id]).filter(Boolean),
+        window,
+        decisions: visibleLessons.map((l) => decisions[l.lesson.id]).filter(Boolean),
       });
       if (!res.ok) {
         setError(res.error);
         return;
       }
-      setSavedOk(true);
+      // Send the user to the "I dag" overview to see the result.
+      router.push("/");
       router.refresh();
     });
   }
@@ -94,7 +114,7 @@ export function ReportFlow({
   const selectedTeacher = teachers.find((t) => t.id === teacherId) ?? null;
   const hasExisting = data && Object.keys(data.existing).length > 0;
 
-  const counts = summarize(data, decisions);
+  const counts = summarize(visibleLessons, decisions);
 
   return (
     <div className="space-y-5">
@@ -123,6 +143,56 @@ export function ReportFlow({
         {date && (
           <p className="mt-3 text-sm text-muted">{capitalize(formatDateLong(date))}</p>
         )}
+
+        {/* Whole day vs. a specific time window */}
+        <div className="mt-4 border-t border-line pt-4">
+          <p className="mb-2 text-sm font-medium text-ink">Fraværet gjelder</p>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="inline-flex rounded-lg bg-canvas p-0.5 ring-1 ring-line">
+              <button
+                type="button"
+                onClick={() => setWholeDay(true)}
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
+                  wholeDay ? "bg-surface text-ink shadow-sm" : "text-muted hover:text-ink"
+                }`}
+              >
+                Hele dagen
+              </button>
+              <button
+                type="button"
+                onClick={() => setWholeDay(false)}
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
+                  !wholeDay ? "bg-surface text-ink shadow-sm" : "text-muted hover:text-ink"
+                }`}
+              >
+                Bestemt tidsrom
+              </button>
+            </div>
+
+            {!wholeDay && (
+              <div className="flex items-center gap-2 text-sm">
+                <input
+                  type="time"
+                  value={winFrom}
+                  onChange={(e) => setWinFrom(e.target.value)}
+                  className="rounded-lg border border-line bg-surface px-2.5 py-1.5 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+                />
+                <span className="text-muted">til</span>
+                <input
+                  type="time"
+                  value={winTo}
+                  onChange={(e) => setWinTo(e.target.value)}
+                  className="rounded-lg border border-line bg-surface px-2.5 py-1.5 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+                />
+              </div>
+            )}
+          </div>
+          {!wholeDay && (
+            <p className="mt-2 text-xs text-muted">
+              Bare timer som overlapper med {winFrom}–{winTo} trenger dekning.
+            </p>
+          )}
+        </div>
       </Card>
 
       {error && (
@@ -144,9 +214,15 @@ export function ReportFlow({
           {selectedTeacher.name} har ingen timer på {WEEKDAY_NAMES[data.weekday].toLowerCase()}.
         </Card>
       )}
+      {data && data.weekday != null && data.lessons.length > 0 && visibleLessons.length === 0 && (
+        <Card className="p-6 text-sm text-muted">
+          Ingen timer overlapper med tidsrommet {winFrom}–{winTo}. Juster tidsrommet
+          eller velg «Hele dagen».
+        </Card>
+      )}
 
       {/* Lessons */}
-      {data && data.lessons.length > 0 && (
+      {data && visibleLessons.length > 0 && (
         <>
           {hasExisting && (
             <p className="rounded-lg bg-brand-50 px-4 py-2.5 text-sm text-brand-800 ring-1 ring-brand-600/15">
@@ -155,7 +231,7 @@ export function ReportFlow({
           )}
 
           <div className="space-y-4">
-            {data.lessons.map((lc) => (
+            {visibleLessons.map((lc) => (
               <LessonCard
                 key={lc.lesson.id}
                 lc={lc}
@@ -176,7 +252,6 @@ export function ReportFlow({
                   <span className="font-medium text-amber-700">{counts.pending} venter</span> ·{" "}
                   <span className="font-medium text-red-700">{counts.uncovered} udekket</span>
                 </span>
-                {savedOk && <span className="font-medium text-emerald-700">Lagret ✓</span>}
               </div>
               <div className="flex items-center gap-2">
                 {hasExisting && (
@@ -483,18 +558,17 @@ function buildInitialDecisions(data: ReportData): Record<string, LessonDecision>
 }
 
 function summarize(
-  data: ReportData | null,
+  lessons: LessonCoverage[],
   decisions: Record<string, LessonDecision>,
 ) {
   let covered = 0;
   let pending = 0;
   let uncovered = 0;
-  const total = data?.lessons.length ?? 0;
-  for (const lc of data?.lessons ?? []) {
+  for (const lc of lessons) {
     const k = decisions[lc.lesson.id]?.kind ?? "pending";
     if (k === "teacher" || k === "vikar" || k === "coteacher") covered += 1;
     else if (k === "uncovered") uncovered += 1;
     else pending += 1;
   }
-  return { total, covered, pending, uncovered };
+  return { total: lessons.length, covered, pending, uncovered };
 }

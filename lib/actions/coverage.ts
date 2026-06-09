@@ -15,7 +15,7 @@ import type {
   Teacher,
   Vikar,
 } from "@/lib/database.types";
-import type { CoverageStatus } from "@/lib/constants";
+import { lessonInWindow, type CoverageStatus } from "@/lib/constants";
 import type { ActionResult } from "./_common";
 import { nullableText } from "./_common";
 
@@ -46,6 +46,8 @@ export interface ReportData {
   teachersById: Record<string, Teacher>;
   /** Existing decisions when re-opening a date (lessonId -> decision). */
   existing: Record<string, LessonDecision>;
+  /** Saved absence window when re-opening (null = whole day / new absence). */
+  absenceWindow: { from: string; to: string } | null;
 }
 
 /**
@@ -99,7 +101,17 @@ export async function loadReportData(
     };
   }
 
-  return { ok: true, data: { weekday, lessons, vikars, teachersById, existing } };
+  // Saved time window for this absence (if it was reported partial-day).
+  const absenceRow = absences.find((a) => a.teacher_id === absentTeacherId);
+  const absenceWindow =
+    absenceRow?.start_time && absenceRow?.end_time
+      ? { from: absenceRow.start_time, to: absenceRow.end_time }
+      : null;
+
+  return {
+    ok: true,
+    data: { weekday, lessons, vikars, teachersById, existing, absenceWindow },
+  };
 }
 
 function statusToKind(status: CoverageStatus): DecisionKind {
@@ -136,6 +148,9 @@ export interface SaveCoverageInput {
   date: string;
   absentTeacherId: string;
   reason?: string | null;
+  /** Partial-day window; null = whole day. */
+  window?: { from: string; to: string } | null;
+  /** Decisions for the in-scope lessons only (others get pruned). */
   decisions: LessonDecision[];
 }
 
@@ -180,7 +195,7 @@ export async function saveCoverage(
     seen.set(key, d.lessonId);
   }
 
-  // Upsert the absence (one row per teacher per date).
+  // Upsert the absence (one row per teacher per date), incl. the time window.
   const { error: absErr } = await supabase
     .from("absences")
     .upsert(
@@ -188,6 +203,8 @@ export async function saveCoverage(
         teacher_id: input.absentTeacherId,
         date: input.date,
         reason: nullableText(input.reason),
+        start_time: input.window?.from ?? null,
+        end_time: input.window?.to ?? null,
       },
       { onConflict: "teacher_id,date" },
     );
@@ -203,6 +220,20 @@ export async function saveCoverage(
   const existingByLesson = new Map<string, string>(
     (existingRows ?? []).map((r) => [r.lesson_id, r.id]),
   );
+
+  // Prune assignments for lessons no longer in scope (e.g. the window was
+  // narrowed so some lessons fell outside it).
+  const submittedLessonIds = new Set(input.decisions.map((d) => d.lessonId));
+  const toDelete = (existingRows ?? [])
+    .filter((r) => !submittedLessonIds.has(r.lesson_id))
+    .map((r) => r.id);
+  if (toDelete.length > 0) {
+    const { error: delErr } = await supabase
+      .from("coverage_assignments")
+      .delete()
+      .in("id", toDelete);
+    if (delErr) return { ok: false, error: delErr.message };
+  }
 
   for (const d of input.decisions) {
     const status = kindToStatus(d);
@@ -270,6 +301,8 @@ export interface DayLesson {
 export interface DayAbsence {
   teacher: Teacher;
   reason: string | null;
+  /** Partial-day window, or null for a whole-day absence. */
+  window: { from: string; to: string } | null;
   lessons: DayLesson[];
 }
 
@@ -313,8 +346,17 @@ export async function getDayOverview(date: string): Promise<DayOverview> {
     .map((abs) => {
       const teacher = teacherById.get(abs.teacher_id);
       if (!teacher) return null;
+      const window =
+        abs.start_time && abs.end_time
+          ? { from: abs.start_time, to: abs.end_time }
+          : null;
       const lessons = allLessons
-        .filter((l) => l.teacher_id === abs.teacher_id && l.weekday === weekday)
+        .filter(
+          (l) =>
+            l.teacher_id === abs.teacher_id &&
+            l.weekday === weekday &&
+            lessonInWindow(l, window),
+        )
         .sort((a, b) => a.period - b.period)
         .map((lesson): DayLesson => {
           const assignment = assignmentByLesson.get(lesson.id) ?? null;
@@ -333,7 +375,7 @@ export async function getDayOverview(date: string): Promise<DayOverview> {
 
           return { assignment, lesson, coveringName, status };
         });
-      return { teacher, reason: abs.reason, lessons };
+      return { teacher, reason: abs.reason, window, lessons };
     })
     .filter((x): x is DayAbsence => x !== null);
 

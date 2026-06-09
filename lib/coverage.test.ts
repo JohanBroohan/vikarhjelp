@@ -15,6 +15,7 @@ import type {
   Absence,
   CoverageAssignment,
 } from "./database.types";
+import { lessonInWindow } from "./constants";
 
 /* ---- tiny builders ------------------------------------------------------- */
 
@@ -37,7 +38,15 @@ function lesson(p: Partial<Lesson> & { teacher_id: string; weekday: number; peri
   };
 }
 function absence(teacher_id: string, date: string): Absence {
-  return { id: `a-${teacher_id}-${date}`, teacher_id, date, reason: null, created_at: "" };
+  return {
+    id: `a-${teacher_id}-${date}`,
+    teacher_id,
+    date,
+    reason: null,
+    start_time: null,
+    end_time: null,
+    created_at: "",
+  };
 }
 function assignment(p: Partial<CoverageAssignment> & { lesson_id: string; date: string }): CoverageAssignment {
   return {
@@ -184,6 +193,39 @@ describe("supporting builders", () => {
       "2026-06-08",
     );
     expect([...set].sort()).toEqual(["anna", "bjorn"]);
+  });
+});
+
+/* ---- partial-day absence window ----------------------------------------- */
+
+describe("lessonInWindow", () => {
+  const morning: Lesson = lesson({ teacher_id: "x", weekday: 1, period: 1 });
+  morning.start_time = "08:30";
+  morning.end_time = "11:30";
+  const afternoon: Lesson = lesson({ teacher_id: "x", weekday: 1, period: 2 });
+  afternoon.start_time = "12:30";
+  afternoon.end_time = "15:00";
+
+  it("includes every lesson when the window is null (whole day)", () => {
+    expect(lessonInWindow(morning, null)).toBe(true);
+    expect(lessonInWindow(afternoon, null)).toBe(true);
+  });
+
+  it("includes only lessons overlapping the window", () => {
+    const w = { from: "11:00", to: "12:45" };
+    expect(lessonInWindow(morning, w)).toBe(true); // 08:30–11:30 overlaps at 11:00–11:30
+    expect(lessonInWindow(afternoon, w)).toBe(true); // 12:30–15:00 overlaps at 12:30–12:45
+  });
+
+  it("excludes lessons entirely outside the window", () => {
+    expect(lessonInWindow(afternoon, { from: "08:00", to: "11:00" })).toBe(false);
+    expect(lessonInWindow(morning, { from: "13:00", to: "15:00" })).toBe(false);
+  });
+
+  it("falls back to default period clock when a lesson has no explicit times", () => {
+    const noTimes = lesson({ teacher_id: "x", weekday: 1, period: 1 }); // period 1 => 08:30–11:30
+    expect(lessonInWindow(noTimes, { from: "09:00", to: "10:00" })).toBe(true);
+    expect(lessonInWindow(noTimes, { from: "13:00", to: "14:00" })).toBe(false);
   });
 });
 

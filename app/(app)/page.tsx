@@ -42,8 +42,9 @@ export default async function DashboardPage() {
                 <div>
                   <h2 className="font-semibold text-ink">{abs.teacher.name}</h2>
                   <p className="text-xs text-muted">
+                    {abs.window ? `Borte ${abs.window.from}–${abs.window.to} · ` : ""}
                     {abs.reason ? abs.reason + " · " : ""}
-                    {pluralLessons(abs.lessons.length)} denne dagen
+                    {pluralLessons(abs.lessons.length)} å dekke
                   </p>
                 </div>
                 <Link
