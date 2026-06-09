@@ -85,6 +85,12 @@ export async function loadReportData(
     assignments,
   });
 
+  // Only offer vikars who are available on this weekday.
+  const availableVikars =
+    weekday == null
+      ? vikars
+      : vikars.filter((v) => !(v.unavailable_weekdays ?? []).includes(weekday));
+
   const teachersById: Record<string, Teacher> = {};
   for (const t of teachers) teachersById[t.id] = t;
 
@@ -110,7 +116,7 @@ export async function loadReportData(
 
   return {
     ok: true,
-    data: { weekday, lessons, vikars, teachersById, existing, absenceWindow },
+    data: { weekday, lessons, vikars: availableVikars, teachersById, existing, absenceWindow },
   };
 }
 

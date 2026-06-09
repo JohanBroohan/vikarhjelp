@@ -24,6 +24,8 @@ export type Vikar = {
   email: string | null;
   notes: string | null;
   is_active: boolean;
+  /** Weekdays (Mon=1..Fri=5) the vikar CANNOT work. Empty = available all days. */
+  unavailable_weekdays: number[];
   created_at: string;
 };
 

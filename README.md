@@ -65,6 +65,7 @@ contents, paste, click *Run*):
 1. `0001_initial_schema.sql`
 2. `0002_rls_policies.sql`
 3. `0003_absence_time_window.sql`
+4. `0004_vikar_availability.sql`
 
 (If you prefer the Supabase CLI, `supabase db push` works too — but the SQL
 editor is the simplest first-time path.)
@@ -106,7 +107,7 @@ write everything** (there's only one user). The full SQL is in
 | Table | Purpose | Key columns |
 |---|---|---|
 | **teachers** | School staff | `name`, `phone`, `email`, `is_active` |
-| **vikars** | External substitutes | `name`, `phone`, `email`, `notes`, `is_active` |
+| **vikars** | External substitutes | `name`, `phone`, `email`, `notes`, `is_active`, `unavailable_weekdays` (weekdays they can't work) |
 | **lessons** | The fixed weekly timetable, one row per recurring slot | `teacher_id`, `weekday` (1–5), `period` (1–2, Montessori work cycles — set by `PERIOD_COUNT` in `lib/constants.ts`), `subject`, `class_group`, `room`, `start_time`/`end_time` |
 | **absences** | A teacher is out on a date | `teacher_id`, `date`, `reason` |
 | **coverage_assignments** | One row per lesson that needed covering on a date | `date`, `lesson_id`, `absent_teacher_id`, `covering_teacher_id?`, `covering_vikar_id?`, `status`, `is_settled`, `settled_at`, `notes` |

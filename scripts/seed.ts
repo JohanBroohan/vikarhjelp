@@ -46,10 +46,11 @@ const TEACHERS = [
 ];
 
 const VIKARS = [
-  { name: "Ingrid Larsen", phone: "94020001", email: "ingrid.larsen@vikar.no", notes: "Foretrekker yngre klasser (8. trinn)", is_active: true },
-  { name: "Jonas Moen",    phone: "94020002", email: "jonas.moen@vikar.no",    notes: "Kun mandag–onsdag", is_active: true },
-  { name: "Kari Nilsen",   phone: "94020003", email: "kari.nilsen@vikar.no",   notes: "Erfaren, alle trinn. Realfag.", is_active: true },
-  { name: "Lars Olsen",    phone: "94020004", email: null,                     notes: "Pensjonert lærer. Spør gjerne.", is_active: false },
+  // unavailable_weekdays: Mon=1 .. Fri=5 — days the vikar cannot work.
+  { name: "Ingrid Larsen", phone: "94020001", email: "ingrid.larsen@vikar.no", notes: "Foretrekker yngre klasser (8. trinn)", is_active: true,  unavailable_weekdays: [2] },        // studerer på tirsdager
+  { name: "Jonas Moen",    phone: "94020002", email: "jonas.moen@vikar.no",    notes: "Kun mandag–onsdag", is_active: true,  unavailable_weekdays: [4, 5] }, // torsdag/fredag
+  { name: "Kari Nilsen",   phone: "94020003", email: "kari.nilsen@vikar.no",   notes: "Erfaren, alle trinn. Realfag.", is_active: true,  unavailable_weekdays: [] },
+  { name: "Lars Olsen",    phone: "94020004", email: null,                     notes: "Pensjonert lærer. Spør gjerne.", is_active: false, unavailable_weekdays: [] },
 ];
 
 // --- Timetable --------------------------------------------------------------

@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { Vikar } from "@/lib/database.types";
+import { WEEKDAYS, WEEKDAY_NAMES, WEEKDAY_SHORT } from "@/lib/constants";
 import { Button, Card, Field, Input, Textarea, EmptyState } from "@/components/ui";
 import { Modal } from "@/components/Modal";
 import { PhoneLink } from "@/components/PhoneLink";
@@ -57,6 +58,7 @@ export function VikarsManager({ vikars }: { vikars: Vikar[] }) {
                   <th className="px-4 py-3 font-medium">Telefon</th>
                   <th className="px-4 py-3 font-medium">E-post</th>
                   <th className="px-4 py-3 font-medium">Notater</th>
+                  <th className="px-4 py-3 font-medium">Utilgjengelig</th>
                   <th className="px-4 py-3 font-medium">Status</th>
                   <th className="px-4 py-3 text-right font-medium">Handlinger</th>
                 </tr>
@@ -70,6 +72,25 @@ export function VikarsManager({ vikars }: { vikars: Vikar[] }) {
                     </td>
                     <td className="px-4 py-3 text-muted">{v.email ?? "—"}</td>
                     <td className="max-w-xs px-4 py-3 text-muted">{v.notes ?? "—"}</td>
+                    <td className="px-4 py-3">
+                      {v.unavailable_weekdays?.length ? (
+                        <div className="flex flex-wrap gap-1">
+                          {[...v.unavailable_weekdays]
+                            .sort()
+                            .map((d) => (
+                              <span
+                                key={d}
+                                className="rounded bg-canvas px-1.5 py-0.5 text-xs text-muted ring-1 ring-line"
+                                title={WEEKDAY_NAMES[d]}
+                              >
+                                {WEEKDAY_SHORT[d]}
+                              </span>
+                            ))}
+                        </div>
+                      ) : (
+                        <span className="text-muted">—</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3">
                       <button
                         onClick={() => toggleActive(v)}
@@ -129,6 +150,7 @@ function VikarFormModal({
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [notes, setNotes] = useState("");
+  const [unavailableDays, setUnavailableDays] = useState<number[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -140,14 +162,21 @@ function VikarFormModal({
     setPhone(vikar?.phone ?? "");
     setEmail(vikar?.email ?? "");
     setNotes(vikar?.notes ?? "");
+    setUnavailableDays(vikar?.unavailable_weekdays ?? []);
     setError(null);
+  }
+
+  function toggleDay(day: number) {
+    setUnavailableDays((prev) =>
+      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day],
+    );
   }
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     startTransition(async () => {
-      const payload = { name, phone, email, notes };
+      const payload = { name, phone, email, notes, unavailable_weekdays: unavailableDays };
       const res =
         isEdit && vikar
           ? await updateVikar(vikar.id, payload)
@@ -171,9 +200,37 @@ function VikarFormModal({
             <Input value={email} onChange={(e) => setEmail(e.target.value)} type="email" />
           </Field>
         </div>
-        <Field label="Notater" hint="F.eks. «foretrekker yngre klasser» eller «kun mandag–onsdag».">
+        <Field label="Notater" hint="F.eks. «foretrekker yngre klasser».">
           <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
         </Field>
+
+        <div className="space-y-1.5">
+          <span className="block text-sm font-medium text-ink">Ikke tilgjengelig på</span>
+          <div className="flex flex-wrap gap-2">
+            {WEEKDAYS.map((d) => {
+              const active = unavailableDays.includes(d);
+              return (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => toggleDay(d)}
+                  className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+                    active
+                      ? "bg-ink text-white"
+                      : "text-muted ring-1 ring-line hover:bg-canvas"
+                  }`}
+                >
+                  {WEEKDAY_NAMES[d]}
+                </button>
+              );
+            })}
+          </div>
+          <span className="block text-xs text-muted">
+            Merk dagene vikaren ikke kan jobbe (f.eks. studerer på tirsdager). Disse
+            dagene foreslås ikke når du registrerer fravær.
+          </span>
+        </div>
+
         {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
         <div className="flex justify-end gap-2 pt-2">
           <Button type="button" variant="secondary" onClick={onClose}>

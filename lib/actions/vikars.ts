@@ -11,6 +11,13 @@ export interface VikarInput {
   email?: string | null;
   notes?: string | null;
   is_active?: boolean;
+  unavailable_weekdays?: number[];
+}
+
+/** Keep only valid weekday numbers (1–5), de-duplicated and sorted. */
+function sanitizeWeekdays(days?: number[]): number[] {
+  if (!Array.isArray(days)) return [];
+  return [...new Set(days.filter((d) => Number.isInteger(d) && d >= 1 && d <= 5))].sort();
 }
 
 function revalidateVikarViews() {
@@ -30,6 +37,7 @@ export async function createVikar(input: VikarInput): Promise<ActionResult> {
     email: nullableText(input.email),
     notes: nullableText(input.notes),
     is_active: input.is_active ?? true,
+    unavailable_weekdays: sanitizeWeekdays(input.unavailable_weekdays),
   });
   if (error) return { ok: false, error: error.message };
 
@@ -53,6 +61,7 @@ export async function updateVikar(
       phone: nullableText(input.phone),
       email: nullableText(input.email),
       notes: nullableText(input.notes),
+      unavailable_weekdays: sanitizeWeekdays(input.unavailable_weekdays),
       ...(input.is_active === undefined ? {} : { is_active: input.is_active }),
     })
     .eq("id", id);
