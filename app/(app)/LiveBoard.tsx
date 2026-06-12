@@ -8,6 +8,10 @@ import type { BoardLesson, BoardTeacher, TodayBoard } from "@/lib/queries/board"
 const ROW_H = 64; // px per teacher row
 const HEAD_H = 36; // px for the time-tick header
 
+// Light grey diagonal stripes to flag an absent teacher's whole row.
+const ABSENT_STRIPES =
+  "repeating-linear-gradient(45deg, rgba(17,17,17,0.05) 0, rgba(17,17,17,0.05) 6px, transparent 6px, transparent 12px)";
+
 function toMin(hm: string): number {
   const [h, m] = hm.split(":").map(Number);
   return h * 60 + m;
@@ -175,7 +179,10 @@ export function LiveBoard({ board }: { board: TodayBoard }) {
                   <div
                     key={t.id}
                     className={`relative border-t border-line ${t.absent ? "bg-canvas/40" : ""}`}
-                    style={{ height: ROW_H }}
+                    style={{
+                      height: ROW_H,
+                      ...(t.absent ? { backgroundImage: ABSENT_STRIPES } : {}),
+                    }}
                   >
                     {t.lessons.map((l) => (
                       <LessonBlock

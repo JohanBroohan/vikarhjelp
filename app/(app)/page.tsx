@@ -20,9 +20,9 @@ export default async function OversiktPage() {
           <LiveBoard board={board} />
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-4 xl:mt-12">
           <Card className="p-4">
-            <h2 className="mb-2 text-sm font-semibold text-ink">Syke i dag</h2>
+            <h2 className="mb-4 text-base font-semibold text-ink">Syke i dag</h2>
             {board.sick.length === 0 ? (
               <p className="text-sm text-muted">Ingen fravær registrert i dag.</p>
             ) : (
@@ -36,11 +36,9 @@ export default async function OversiktPage() {
                       <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
                       {s.name}
                     </span>
-                    {s.window && (
-                      <span className="tabular text-xs text-red-600">
-                        {s.window.from}–{s.window.to}
-                      </span>
-                    )}
+                    <span className="tabular text-xs text-red-600">
+                      {s.window ? `${s.window.from}–${s.window.to}` : "Hele dagen"}
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -48,7 +46,7 @@ export default async function OversiktPage() {
           </Card>
 
           <Card className="p-4">
-            <h2 className="mb-2 text-sm font-semibold text-ink">
+            <h2 className="mb-4 text-base font-semibold text-ink">
               Vikarer på skolen i dag
             </h2>
             {board.vikars.length === 0 ? (
