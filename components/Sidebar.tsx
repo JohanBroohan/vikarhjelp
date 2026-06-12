@@ -1,23 +1,59 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { NAV_ITEMS, isNavActive } from "./nav-items";
 
+const STORAGE_KEY = "vh:sidebar-collapsed";
+
 export function Sidebar({ email }: { email: string | null }) {
   const pathname = usePathname();
+  const [collapsed, setCollapsed] = useState(false);
+
+  // Restore the collapsed preference (kept across reloads, e.g. on the TV).
+  useEffect(() => {
+    const restore = () => {
+      try {
+        setCollapsed(localStorage.getItem(STORAGE_KEY) === "1");
+      } catch {
+        /* ignore */
+      }
+    };
+    restore();
+  }, []);
+
+  function toggle() {
+    setCollapsed((c) => {
+      const next = !c;
+      try {
+        localStorage.setItem(STORAGE_KEY, next ? "1" : "0");
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  }
 
   return (
-    <aside className="flex h-full w-60 shrink-0 flex-col border-r border-line bg-surface">
-      <div className="flex items-center gap-2.5 px-5 py-5">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-sm font-bold text-white">
+    <aside
+      className={`flex h-full shrink-0 flex-col border-r border-line bg-surface transition-[width] duration-200 ${
+        collapsed ? "w-16" : "w-60"
+      }`}
+    >
+      {/* Brand */}
+      <div className={`flex items-center py-5 ${collapsed ? "justify-center px-0" : "gap-2.5 px-5"}`}>
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-600 text-sm font-bold text-white">
           V
         </div>
-        <span className="text-lg font-semibold tracking-tight text-ink">
-          Vikarhjelp
-        </span>
+        {!collapsed && (
+          <span className="text-lg font-semibold tracking-tight text-ink">
+            Vikarhjelp
+          </span>
+        )}
       </div>
 
+      {/* Nav */}
       <nav className="flex-1 space-y-0.5 px-3 py-2">
         {NAV_ITEMS.map((item) => {
           const active = isNavActive(pathname, item.href);
@@ -25,7 +61,10 @@ export function Sidebar({ email }: { email: string | null }) {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition ${
+              title={collapsed ? item.label : undefined}
+              className={`flex items-center rounded-lg py-2 text-sm font-medium transition ${
+                collapsed ? "justify-center px-0" : "gap-3 px-3"
+              } ${
                 active
                   ? "bg-brand-50 text-brand-700"
                   : "text-muted hover:bg-canvas hover:text-ink"
@@ -42,22 +81,61 @@ export function Sidebar({ email }: { email: string | null }) {
               >
                 <path d={item.icon} />
               </svg>
-              {item.label}
+              {!collapsed && item.label}
             </Link>
           );
         })}
       </nav>
 
-      <div className="border-t border-line p-3">
-        <div className="truncate px-2 pb-2 text-xs text-muted" title={email ?? ""}>
-          {email}
-        </div>
+      {/* Footer: collapse toggle, account, sign out */}
+      <div className="space-y-1 border-t border-line p-3">
+        <button
+          onClick={toggle}
+          title={collapsed ? "Vis meny" : "Skjul meny"}
+          className={`flex w-full items-center rounded-lg py-2 text-sm font-medium text-muted transition hover:bg-canvas hover:text-ink ${
+            collapsed ? "justify-center px-0" : "gap-3 px-3"
+          }`}
+        >
+          <svg
+            className={`h-[18px] w-[18px] shrink-0 transition-transform ${collapsed ? "rotate-180" : ""}`}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={1.8}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
+          {!collapsed && "Skjul meny"}
+        </button>
+
+        {!collapsed && email && (
+          <div className="truncate px-3 pt-1 text-xs text-muted" title={email}>
+            {email}
+          </div>
+        )}
+
         <form action="/auth/signout" method="post">
           <button
             type="submit"
-            className="w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-muted transition hover:bg-canvas hover:text-ink"
+            title="Logg ut"
+            className={`flex w-full items-center rounded-lg py-2 text-sm font-medium text-muted transition hover:bg-canvas hover:text-ink ${
+              collapsed ? "justify-center px-0" : "gap-3 px-3"
+            }`}
           >
-            Logg ut
+            <svg
+              className="h-[18px] w-[18px] shrink-0"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.8}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M16 17l5-5-5-5M21 12H9M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+            </svg>
+            {!collapsed && "Logg ut"}
           </button>
         </form>
       </div>
