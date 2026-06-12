@@ -15,7 +15,7 @@ import type {
   Teacher,
   Vikar,
 } from "@/lib/database.types";
-import { lessonInWindow, type CoverageStatus } from "@/lib/constants";
+import type { CoverageStatus } from "@/lib/constants";
 import type { ActionResult } from "./_common";
 import { nullableText } from "./_common";
 
@@ -352,102 +352,3 @@ function addWeekDays(iso: string, n: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-/* -------------------------------------------------------------------------- */
-/* Dashboard overview                                                         */
-/* -------------------------------------------------------------------------- */
-
-export interface DayLesson {
-  assignment: CoverageAssignment | null;
-  lesson: Lesson;
-  coveringName: string | null;
-  status: CoverageStatus;
-}
-
-export interface DayAbsence {
-  teacher: Teacher;
-  reason: string | null;
-  /** Partial-day window, or null for a whole-day absence. */
-  window: { from: string; to: string } | null;
-  lessons: DayLesson[];
-}
-
-export interface DayOverview {
-  date: string;
-  weekday: number | null;
-  absences: DayAbsence[];
-  summary: { total: number; covered: number; pending: number; uncovered: number };
-}
-
-/** Assemble the "I dag" dashboard data for a given date. */
-export async function getDayOverview(date: string): Promise<DayOverview> {
-  const supabase = await createClient();
-  const weekday = weekdayFromISODate(date);
-
-  const [teachersRes, vikarsRes, absencesRes, lessonsRes, assignmentsRes] =
-    await Promise.all([
-      supabase.from("teachers").select("*"),
-      supabase.from("vikars").select("id, name"),
-      supabase.from("absences").select("*").eq("date", date),
-      supabase.from("lessons").select("*"),
-      supabase.from("coverage_assignments").select("*").eq("date", date),
-    ]);
-
-  const teachers = (teachersRes.data ?? []) as Teacher[];
-  const teacherById = new Map(teachers.map((t) => [t.id, t]));
-  const vikarById = new Map(
-    (vikarsRes.data ?? []).map((v) => [v.id, v.name as string]),
-  );
-  const absences = (absencesRes.data ?? []) as Absence[];
-  const allLessons = (lessonsRes.data ?? []) as Lesson[];
-  const assignments = (assignmentsRes.data ?? []) as CoverageAssignment[];
-  const assignmentByLesson = new Map(assignments.map((a) => [a.lesson_id, a]));
-
-  let total = 0;
-  let covered = 0;
-  let pending = 0;
-  let uncovered = 0;
-
-  const dayAbsences: DayAbsence[] = absences
-    .map((abs) => {
-      const teacher = teacherById.get(abs.teacher_id);
-      if (!teacher) return null;
-      const window =
-        abs.start_time && abs.end_time
-          ? { from: abs.start_time, to: abs.end_time }
-          : null;
-      const lessons = allLessons
-        .filter(
-          (l) =>
-            l.teacher_id === abs.teacher_id &&
-            l.weekday === weekday &&
-            lessonInWindow(l, window),
-        )
-        .sort((a, b) => a.period - b.period)
-        .map((lesson): DayLesson => {
-          const assignment = assignmentByLesson.get(lesson.id) ?? null;
-          const status: CoverageStatus = assignment?.status ?? "pending";
-          let coveringName: string | null = null;
-          if (assignment?.covering_teacher_id)
-            coveringName = teacherById.get(assignment.covering_teacher_id)?.name ?? null;
-          else if (assignment?.covering_vikar_id)
-            coveringName = vikarById.get(assignment.covering_vikar_id) ?? null;
-
-          total += 1;
-          if (status === "covered_by_teacher" || status === "covered_by_vikar" || status === "covered_by_coteacher")
-            covered += 1;
-          else if (status === "uncovered") uncovered += 1;
-          else pending += 1;
-
-          return { assignment, lesson, coveringName, status };
-        });
-      return { teacher, reason: abs.reason, window, lessons };
-    })
-    .filter((x): x is DayAbsence => x !== null);
-
-  return {
-    date,
-    weekday,
-    absences: dayAbsences,
-    summary: { total, covered, pending, uncovered },
-  };
-}

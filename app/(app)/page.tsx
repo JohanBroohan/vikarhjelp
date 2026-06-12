@@ -1,95 +1,81 @@
-import Link from "next/link";
-import { getDayOverview } from "@/lib/actions/coverage";
-import { todayISO, formatDateLong, capitalize, pluralLessons } from "@/lib/format";
-import { PERIOD_TIMES } from "@/lib/constants";
-import { Page, PageHeader, Card, ButtonLink, EmptyState } from "@/components/ui";
-import { StatusBadge } from "@/components/StatusBadge";
+import { getTodayBoard } from "@/lib/queries/board";
+import { todayISO, formatDateLong, capitalize } from "@/lib/format";
+import { Page, PageHeader, Card, ButtonLink } from "@/components/ui";
+import { PhoneLink } from "@/components/PhoneLink";
+import { LiveBoard } from "./LiveBoard";
 
-export default async function DashboardPage() {
+export default async function OversiktPage() {
   const today = todayISO();
-  const overview = await getDayOverview(today);
-  const { summary } = overview;
+  const board = await getTodayBoard(today);
+  const { summary } = board;
 
   return (
     <Page>
       <PageHeader
-        title="I dag"
+        title="Oversikt"
         description={capitalize(formatDateLong(today))}
         actions={
           <ButtonLink href={`/fravaer?date=${today}`}>+ Registrer fravær</ButtonLink>
         }
       />
 
-      {/* Summary */}
-      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      {/* Sick today + vikars at school today */}
+      <div className="mb-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Card className="p-4">
+          <h2 className="mb-2 text-sm font-semibold text-ink">Syke i dag</h2>
+          {board.sick.length === 0 ? (
+            <p className="text-sm text-muted">Ingen fravær registrert i dag.</p>
+          ) : (
+            <ul className="flex flex-wrap gap-2">
+              {board.sick.map((s) => (
+                <li
+                  key={s.id}
+                  className="rounded-lg bg-red-50 px-3 py-1.5 text-sm font-medium text-red-700 ring-1 ring-red-600/15"
+                >
+                  {s.name}
+                  {s.window && (
+                    <span className="font-normal text-red-600/80"> · {s.window.from}–{s.window.to}</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+
+        <Card className="p-4">
+          <h2 className="mb-2 text-sm font-semibold text-ink">Vikarer på skolen i dag</h2>
+          {board.vikars.length === 0 ? (
+            <p className="text-sm text-muted">Ingen vikarer i dag.</p>
+          ) : (
+            <ul className="space-y-2">
+              {board.vikars.map((v) => (
+                <li key={v.id} className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm">
+                  <span className="font-medium text-ink">{v.name}</span>
+                  <PhoneLink phone={v.phone} />
+                  <span className="text-muted">
+                    {v.classes.length} {v.classes.length === 1 ? "time" : "timer"}
+                    {": "}
+                    {v.classes
+                      .map((c) => [c.subject, c.classGroup].filter(Boolean).join(" "))
+                      .join(", ")}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+      </div>
+
+      {/* Live timeline */}
+      <LiveBoard board={board} />
+
+      {/* Compact coverage summary */}
+      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <SummaryCard label="Timer å dekke" value={summary.total} tone="ink" />
         <SummaryCard label="Dekket" value={summary.covered} tone="green" />
         <SummaryCard label="Venter" value={summary.pending} tone="amber" />
         <SummaryCard label="Udekket" value={summary.uncovered} tone="red" />
       </div>
-
-      {overview.absences.length === 0 ? (
-        <EmptyState
-          title="Ingen fravær registrert i dag"
-          description="Når en lærer melder seg syk, registrer fraværet så finner Vikarhjelp ledige lærere for hver time."
-          action={<ButtonLink href={`/fravaer?date=${today}`}>+ Registrer fravær</ButtonLink>}
-        />
-      ) : (
-        <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
-          {overview.absences.map((abs) => (
-            <Card key={abs.teacher.id} className="overflow-hidden">
-              <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-3.5">
-                <div>
-                  <h2 className="font-semibold text-ink">{abs.teacher.name}</h2>
-                  <p className="text-xs text-muted">
-                    {abs.window ? `Borte ${abs.window.from}–${abs.window.to} · ` : ""}
-                    {abs.reason ? abs.reason + " · " : ""}
-                    {pluralLessons(abs.lessons.length)} å dekke
-                  </p>
-                </div>
-                <Link
-                  href={`/fravaer?date=${today}&teacher=${abs.teacher.id}`}
-                  className="rounded-lg px-3 py-1.5 text-sm font-medium text-brand-700 hover:bg-brand-50"
-                >
-                  Rediger dekning
-                </Link>
-              </div>
-
-              {abs.lessons.length === 0 ? (
-                <p className="px-5 py-4 text-sm text-muted">Ingen timer denne dagen.</p>
-              ) : (
-                <ul className="divide-y divide-line/70">
-                  {abs.lessons.map((dl) => (
-                    <li key={dl.lesson.id} className="flex items-center gap-3 px-5 py-3">
-                      <div className="w-14 shrink-0">
-                        <div className="font-medium text-ink">{dl.lesson.period}.</div>
-                        <div className="tabular text-[11px] text-muted">
-                          {dl.lesson.start_time ?? PERIOD_TIMES[dl.lesson.period]?.start}
-                        </div>
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate font-medium text-ink">
-                          {dl.lesson.subject ?? "Time"}{" "}
-                          <span className="font-normal text-muted">
-                            {dl.lesson.class_group ? `· ${dl.lesson.class_group}` : ""}
-                            {dl.lesson.room ? ` · ${dl.lesson.room}` : ""}
-                          </span>
-                        </div>
-                        {dl.coveringName && (
-                          <div className="truncate text-sm text-emerald-700">
-                            Dekkes av {dl.coveringName}
-                          </div>
-                        )}
-                      </div>
-                      <StatusBadge status={dl.status} />
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Card>
-          ))}
-        </div>
-      )}
     </Page>
   );
 }

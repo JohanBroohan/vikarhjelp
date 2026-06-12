@@ -5,7 +5,7 @@ export interface NavItem {
 }
 
 export const NAV_ITEMS: NavItem[] = [
-  { href: "/", label: "I dag", icon: "M3 12l9-9 9 9M5 10v10h14V10" },
+  { href: "/", label: "Oversikt", icon: "M3 12l9-9 9 9M5 10v10h14V10" },
   { href: "/fravaer", label: "Registrer fravær", icon: "M12 5v14M5 12h14" },
   { href: "/laerere", label: "Lærere", icon: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM4 21v-1a6 6 0 0112 0v1" },
   { href: "/timeplan", label: "Timeplan", icon: "M4 5h16v16H4zM4 9h16M9 5v16" },
