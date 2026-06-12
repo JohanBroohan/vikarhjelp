@@ -3,7 +3,17 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui";
+import { createClient } from "@/lib/supabase/client";
 import type { BoardLesson, BoardTeacher, TodayBoard } from "@/lib/queries/board";
+
+// Tables whose changes should immediately refresh the board.
+const REALTIME_TABLES = [
+  "teachers",
+  "vikars",
+  "lessons",
+  "absences",
+  "coverage_assignments",
+] as const;
 
 const ROW_H = 64; // px per teacher row (max)
 const ROW_MIN = 34; // px per teacher row (min, when squeezing to fit a TV)
@@ -70,6 +80,40 @@ export function LiveBoard({ board }: { board: TodayBoard }) {
       clearInterval(tick);
       clearInterval(refresh);
     };
+  }, [router]);
+
+  // Realtime: refresh the instant an absence, cover, or timetable row changes,
+  // so edits made on the principal's computer appear on the TV immediately.
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    try {
+      const supabase = createClient();
+      // Debounce bursts (e.g. a timetable import) into a single refresh.
+      const scheduleRefresh = () => {
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(() => {
+          timer = null;
+          router.refresh();
+        }, 600);
+      };
+      const channel = supabase.channel("oversikt-realtime");
+      for (const table of REALTIME_TABLES) {
+        channel.on(
+          "postgres_changes",
+          { event: "*", schema: "public", table },
+          scheduleRefresh,
+        );
+      }
+      channel.subscribe();
+      return () => {
+        if (timer) clearTimeout(timer);
+        supabase.removeChannel(channel);
+      };
+    } catch {
+      return () => {
+        if (timer) clearTimeout(timer);
+      };
+    }
   }, [router]);
 
   // On large screens, shrink rows so every teacher fits without scrolling
