@@ -86,34 +86,60 @@ export function LiveBoard({ board }: { board: TodayBoard }) {
   // so edits made on the principal's computer appear on the TV immediately.
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | null = null;
-    try {
-      const supabase = createClient();
-      // Debounce bursts (e.g. a timetable import) into a single refresh.
-      const scheduleRefresh = () => {
-        if (timer) clearTimeout(timer);
-        timer = setTimeout(() => {
-          timer = null;
-          router.refresh();
-        }, 600);
-      };
-      const channel = supabase.channel("oversikt-realtime");
-      for (const table of REALTIME_TABLES) {
-        channel.on(
-          "postgres_changes",
-          { event: "*", schema: "public", table },
-          scheduleRefresh,
-        );
+    let cancelled = false;
+    let cleanup = () => {};
+
+    // Debounce bursts (e.g. a timetable import) into a single refresh.
+    const scheduleRefresh = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        timer = null;
+        router.refresh();
+      }, 600);
+    };
+
+    const start = async () => {
+      try {
+        const supabase = createClient();
+
+        // IMPORTANT: Realtime enforces row-level security, so the socket must
+        // carry the logged-in user's token *before* subscribing — otherwise it
+        // connects as anon and silently receives no changes.
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        if (session?.access_token) {
+          await supabase.realtime.setAuth(session.access_token);
+        }
+        if (cancelled) return;
+
+        const channel = supabase.channel("oversikt-realtime");
+        for (const table of REALTIME_TABLES) {
+          channel.on(
+            "postgres_changes",
+            { event: "*", schema: "public", table },
+            scheduleRefresh,
+          );
+        }
+        channel.subscribe((status) => {
+          // When the subscription (re)connects, pull the latest once to catch
+          // anything that changed while we were connecting.
+          if (status === "SUBSCRIBED") scheduleRefresh();
+        });
+
+        cleanup = () => supabase.removeChannel(channel);
+      } catch {
+        /* realtime unavailable — the periodic poll above still refreshes */
       }
-      channel.subscribe();
-      return () => {
-        if (timer) clearTimeout(timer);
-        supabase.removeChannel(channel);
-      };
-    } catch {
-      return () => {
-        if (timer) clearTimeout(timer);
-      };
-    }
+    };
+
+    start();
+
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+      cleanup();
+    };
   }, [router]);
 
   // On large screens, shrink rows so every teacher fits without scrolling
