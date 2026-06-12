@@ -1,6 +1,6 @@
 import { getTodayBoard } from "@/lib/queries/board";
-import { todayISO, formatDateLong, capitalize } from "@/lib/format";
-import { Page, PageHeader, Card } from "@/components/ui";
+import { todayISO } from "@/lib/format";
+import { Page, Card } from "@/components/ui";
 import { PhoneLink } from "@/components/PhoneLink";
 import { LiveBoard } from "./LiveBoard";
 
@@ -10,9 +10,8 @@ export default async function OversiktPage() {
 
   return (
     <Page fluid>
-      {/* No "Registrer fravær" action here — this screen is shown on the
-          faculty-lounge TV, so it stays read-only. */}
-      <PageHeader title="Oversikt" description={capitalize(formatDateLong(today))} />
+      {/* No title/date and no action — this screen is shown on the faculty TV,
+          so it stays read-only and maximises vertical space. */}
 
       {/* Large screens: timeline left, sick + vikars stacked on the right. */}
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">

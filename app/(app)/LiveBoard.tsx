@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui";
 import type { BoardLesson, BoardTeacher, TodayBoard } from "@/lib/queries/board";
 
-const ROW_H = 64; // px per teacher row
+const ROW_H = 64; // px per teacher row (max)
+const ROW_MIN = 34; // px per teacher row (min, when squeezing to fit a TV)
 const HEAD_H = 36; // px for the time-tick header
 
 // Light grey diagonal stripes to flag an absent teacher's whole row.
@@ -56,6 +57,8 @@ function activityNow(t: BoardTeacher, now: number): Activity {
 export function LiveBoard({ board }: { board: TodayBoard }) {
   const router = useRouter();
   const [now, setNow] = useState<number | null>(null);
+  const rowsRef = useRef<HTMLDivElement>(null);
+  const [rowH, setRowH] = useState(ROW_H);
 
   // Tick the clock (and keep the server data fresh for a TV left on all day).
   useEffect(() => {
@@ -68,6 +71,27 @@ export function LiveBoard({ board }: { board: TodayBoard }) {
       clearInterval(refresh);
     };
   }, [router]);
+
+  // On large screens, shrink rows so every teacher fits without scrolling
+  // (the TV has no one to scroll it). Small screens keep full height + scroll.
+  const rowCount = board.teachers.length;
+  useEffect(() => {
+    const recompute = () => {
+      const el = rowsRef.current;
+      if (!el || !window.matchMedia("(min-width: 1024px)").matches) {
+        setRowH(ROW_H);
+        return;
+      }
+      const top = el.getBoundingClientRect().top;
+      const reserve = 60; // legend + breathing room below
+      const avail = window.innerHeight - top - reserve;
+      const n = Math.max(1, rowCount);
+      setRowH(Math.max(ROW_MIN, Math.min(ROW_H, Math.floor(avail / n))));
+    };
+    recompute();
+    window.addEventListener("resize", recompute);
+    return () => window.removeEventListener("resize", recompute);
+  }, [rowCount]);
 
   if (board.weekday == null) {
     return (
@@ -135,10 +159,10 @@ export function LiveBoard({ board }: { board: TodayBoard }) {
               return (
                 <div
                   key={t.id}
-                  className={`flex flex-col justify-center border-t border-line px-3 ${
+                  className={`flex flex-col justify-center overflow-hidden border-t border-line px-3 leading-tight ${
                     t.absent ? "bg-canvas/60" : ""
                   }`}
-                  style={{ height: ROW_H }}
+                  style={{ height: rowH }}
                 >
                   <div className="flex items-center gap-1.5">
                     <span className="truncate text-sm font-medium text-ink">{t.name}</span>
@@ -173,7 +197,7 @@ export function LiveBoard({ board }: { board: TodayBoard }) {
               </div>
 
               {/* Rows */}
-              <div className="relative">
+              <div className="relative" ref={rowsRef}>
                 {/* hour gridlines */}
                 {ticks.map((m) => (
                   <div
@@ -188,7 +212,7 @@ export function LiveBoard({ board }: { board: TodayBoard }) {
                     key={t.id}
                     className={`relative border-t border-line ${t.absent ? "bg-canvas/40" : ""}`}
                     style={{
-                      height: ROW_H,
+                      height: rowH,
                       ...(t.absent ? { backgroundImage: ABSENT_STRIPES } : {}),
                     }}
                   >

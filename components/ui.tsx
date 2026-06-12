@@ -13,7 +13,7 @@ export function Page({
   fluid?: boolean;
 }) {
   const cls = fluid
-    ? "w-full px-4 py-6 sm:px-6 lg:px-8"
+    ? "w-full px-4 py-4 sm:px-6 lg:px-8"
     : "mx-auto w-full max-w-[1500px] px-5 py-6 sm:px-8 lg:px-10 lg:py-8";
   return <div className={cls}>{children}</div>;
 }
