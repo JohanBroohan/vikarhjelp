@@ -3,13 +3,19 @@ import type { ComponentProps, ReactNode } from "react";
 
 /* Page scaffolding ---------------------------------------------------------- */
 
-/** Wide, desktop-first content container. */
-export function Page({ children }: { children: ReactNode }) {
-  return (
-    <div className="mx-auto w-full max-w-[1500px] px-5 py-6 sm:px-8 lg:px-10 lg:py-8">
-      {children}
-    </div>
-  );
+/** Wide, desktop-first content container. `fluid` fills the full width (no max,
+ *  tighter side padding) — used by the full-screen Oversikt board. */
+export function Page({
+  children,
+  fluid = false,
+}: {
+  children: ReactNode;
+  fluid?: boolean;
+}) {
+  const cls = fluid
+    ? "w-full px-4 py-6 sm:px-6 lg:px-8"
+    : "mx-auto w-full max-w-[1500px] px-5 py-6 sm:px-8 lg:px-10 lg:py-8";
+  return <div className={cls}>{children}</div>;
 }
 
 export function PageHeader({

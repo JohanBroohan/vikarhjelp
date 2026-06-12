@@ -7,10 +7,9 @@ import { LiveBoard } from "./LiveBoard";
 export default async function OversiktPage() {
   const today = todayISO();
   const board = await getTodayBoard(today);
-  const { summary } = board;
 
   return (
-    <Page>
+    <Page fluid>
       {/* No "Registrer fravær" action here — this screen is shown on the
           faculty-lounge TV, so it stays read-only. */}
       <PageHeader title="Oversikt" description={capitalize(formatDateLong(today))} />
@@ -77,37 +76,6 @@ export default async function OversiktPage() {
           </Card>
         </div>
       </div>
-
-      {/* Compact coverage summary */}
-      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <SummaryCard label="Timer å dekke" value={summary.total} tone="ink" />
-        <SummaryCard label="Dekket" value={summary.covered} tone="green" />
-        <SummaryCard label="Venter" value={summary.pending} tone="amber" />
-        <SummaryCard label="Udekket" value={summary.uncovered} tone="red" />
-      </div>
     </Page>
-  );
-}
-
-function SummaryCard({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: number;
-  tone: "ink" | "green" | "amber" | "red";
-}) {
-  const toneClass = {
-    ink: "text-ink",
-    green: "text-emerald-700",
-    amber: "text-amber-700",
-    red: "text-red-700",
-  }[tone];
-  return (
-    <Card className="px-4 py-3.5">
-      <div className={`text-3xl font-semibold tabular ${toneClass}`}>{value}</div>
-      <div className="mt-0.5 text-sm text-muted">{label}</div>
-    </Card>
   );
 }
