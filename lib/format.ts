@@ -40,6 +40,40 @@ export function formatDateCompact(iso: string): string {
   }).format(new Date(iso + "T00:00:00Z"));
 }
 
+/** "8. juni" — day + long month, for week-grid headers. */
+export function formatDayMonth(iso: string): string {
+  return new Intl.DateTimeFormat("nb-NO", {
+    day: "numeric",
+    month: "long",
+    timeZone: "UTC",
+  }).format(new Date(iso + "T00:00:00Z"));
+}
+
+/** Add (or subtract) whole days to an ISO date, returning a new ISO date. */
+export function addDaysISO(iso: string, n: number): string {
+  const d = new Date(iso + "T00:00:00Z");
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+/** The Monday (ISO) of the week containing the given date. */
+export function mondayOfWeekISO(iso: string): string {
+  const day = new Date(iso + "T00:00:00Z").getUTCDay(); // 0=Sun..6=Sat
+  return addDaysISO(iso, -((day + 6) % 7));
+}
+
+/** ISO-8601 week number (1–53) for the given date. */
+export function isoWeekNumber(iso: string): number {
+  const [y, m, d] = iso.split("-").map(Number);
+  const date = new Date(Date.UTC(y, m - 1, d));
+  const dayNum = (date.getUTCDay() + 6) % 7; // Mon=0
+  date.setUTCDate(date.getUTCDate() - dayNum + 3); // Thursday of this week
+  const firstThursday = new Date(Date.UTC(date.getUTCFullYear(), 0, 4));
+  const firstDayNum = (firstThursday.getUTCDay() + 6) % 7;
+  firstThursday.setUTCDate(firstThursday.getUTCDate() - firstDayNum + 3);
+  return 1 + Math.round((date.getTime() - firstThursday.getTime()) / 604800000);
+}
+
 /** Capitalise first letter (Intl weekday names come lower-cased in nb-NO). */
 export function capitalize(s: string): string {
   return s.length ? s[0].toUpperCase() + s.slice(1) : s;

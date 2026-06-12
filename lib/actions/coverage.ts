@@ -294,6 +294,65 @@ export async function deleteAbsence(
 }
 
 /* -------------------------------------------------------------------------- */
+/* Timeplan week overlay                                                      */
+/* -------------------------------------------------------------------------- */
+
+export interface WeekCoverageCell {
+  status: CoverageStatus;
+  coveringName: string | null;
+  absentName: string;
+}
+
+/**
+ * Coverage overlay for one week, keyed by lesson_id. Each lesson sits on a
+ * fixed weekday, so within a single week it maps to exactly one date and thus
+ * at most one coverage assignment.
+ */
+export async function getWeekOverlay(
+  weekStartISO: string,
+): Promise<Record<string, WeekCoverageCell>> {
+  await requireUser();
+  const supabase = await createClient();
+  const from = weekStartISO;
+  const to = addWeekDays(weekStartISO, 4); // Mon..Fri
+
+  const [assignsRes, teachersRes, vikarsRes] = await Promise.all([
+    supabase
+      .from("coverage_assignments")
+      .select("*")
+      .gte("date", from)
+      .lte("date", to),
+    supabase.from("teachers").select("id, name"),
+    supabase.from("vikars").select("id, name"),
+  ]);
+
+  const tName = new Map((teachersRes.data ?? []).map((t) => [t.id, t.name as string]));
+  const vName = new Map((vikarsRes.data ?? []).map((v) => [v.id, v.name as string]));
+
+  const overlay: Record<string, WeekCoverageCell> = {};
+  for (const a of (assignsRes.data ?? []) as CoverageAssignment[]) {
+    const coveringName = a.covering_teacher_id
+      ? tName.get(a.covering_teacher_id) ?? null
+      : a.covering_vikar_id
+        ? vName.get(a.covering_vikar_id) ?? null
+        : null;
+    overlay[a.lesson_id] = {
+      status: a.status,
+      coveringName,
+      absentName: tName.get(a.absent_teacher_id) ?? "Ukjent",
+    };
+  }
+  return overlay;
+}
+
+/** Local day-add helper (avoids importing the client format module here). */
+function addWeekDays(iso: string, n: number): string {
+  const d = new Date(iso + "T00:00:00Z");
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+/* -------------------------------------------------------------------------- */
 /* Dashboard overview                                                         */
 /* -------------------------------------------------------------------------- */
 
