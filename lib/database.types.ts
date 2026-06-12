@@ -47,6 +47,7 @@ export type Absence = {
   teacher_id: string;
   date: string; // ISO date (YYYY-MM-DD)
   reason: string | null;
+  absence_type: string; // slug, see ABSENCE_TYPES (default "egenmelding")
   start_time: string | null; // "HH:MM"; null = whole day
   end_time: string | null; // "HH:MM"; null = whole day
   created_at: string;

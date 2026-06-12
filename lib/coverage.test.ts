@@ -43,6 +43,7 @@ function absence(teacher_id: string, date: string): Absence {
     teacher_id,
     date,
     reason: null,
+    absence_type: "egenmelding",
     start_time: null,
     end_time: null,
     created_at: "",

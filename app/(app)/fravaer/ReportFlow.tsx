@@ -10,6 +10,8 @@ import {
   SCHOOL_DAY_START,
   SCHOOL_DAY_END,
   lessonInWindow,
+  ABSENCE_TYPES,
+  DEFAULT_ABSENCE_TYPE,
 } from "@/lib/constants";
 import { pluralTeachers } from "@/lib/format";
 import { Button, Card, Field, Select } from "@/components/ui";
@@ -41,6 +43,9 @@ export function ReportFlow({
   const [loading, startLoad] = useTransition();
   const [saving, startSave] = useTransition();
 
+  // Absence type — defaults to Egenmelding (the ~95% case).
+  const [absenceType, setAbsenceType] = useState(DEFAULT_ABSENCE_TYPE);
+
   // Absence time window: whole day, or a specific range like 11:00–12:30.
   const [wholeDay, setWholeDay] = useState(true);
   const [winFrom, setWinFrom] = useState(SCHOOL_DAY_START);
@@ -63,11 +68,12 @@ export function ReportFlow({
       setError(null);
       setData(res.data!);
       setDecisions(buildInitialDecisions(res.data!));
-      // Prefill the window from a previously-saved partial-day absence.
+      // Prefill the window + type from a previously-saved absence.
       const w = res.data!.absenceWindow;
       setWholeDay(!w);
       setWinFrom(w?.from ?? SCHOOL_DAY_START);
       setWinTo(w?.to ?? SCHOOL_DAY_END);
+      setAbsenceType(res.data!.absenceType ?? DEFAULT_ABSENCE_TYPE);
     });
   }, [teacherId, date]);
 
@@ -90,6 +96,7 @@ export function ReportFlow({
       const res = await saveCoverage({
         date,
         absentTeacherId: teacherId,
+        absenceType,
         window,
         decisions: visibleLessons.map((l) => decisions[l.lesson.id]).filter(Boolean),
       });
@@ -121,7 +128,7 @@ export function ReportFlow({
     <div className="space-y-5">
       {/* Controls */}
       <Card className="p-5">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:max-w-2xl">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:max-w-3xl lg:grid-cols-3">
           <Field label="Lærer som er borte">
             <Select value={teacherId} onChange={(e) => setTeacherId(e.target.value)}>
               <option value="">Velg lærer …</option>
@@ -134,6 +141,18 @@ export function ReportFlow({
           </Field>
           <Field label="Dato">
             <DateField value={date} onChange={setDate} />
+          </Field>
+          <Field label="Fraværstype">
+            <Select
+              value={absenceType}
+              onChange={(e) => setAbsenceType(e.target.value)}
+            >
+              {ABSENCE_TYPES.map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.label}
+                </option>
+              ))}
+            </Select>
           </Field>
         </div>
 

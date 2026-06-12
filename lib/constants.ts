@@ -91,6 +91,23 @@ export const WEEKDAY_ALIASES: Record<string, number> = {
   fre: 5, fredag: 5, fri: 5, friday: 5,
 };
 
+/**
+ * Absence types ("fraværstype"). Egenmelding is the default (~95% of cases).
+ * These labels are placeholders — rename them here as needed.
+ */
+export const ABSENCE_TYPES: { value: string; label: string }[] = [
+  { value: "egenmelding", label: "Egenmelding" },
+  { value: "sykemelding", label: "Sykemelding" },
+  { value: "barns_sykdom", label: "Barns sykdom" },
+  { value: "velferdspermisjon", label: "Velferdspermisjon" },
+  { value: "annet", label: "Annet" },
+];
+export const DEFAULT_ABSENCE_TYPE = "egenmelding";
+
+export function absenceTypeLabel(value: string | null | undefined): string {
+  return ABSENCE_TYPES.find((t) => t.value === value)?.label ?? "Egenmelding";
+}
+
 export type CoverageStatus =
   | "pending"
   | "covered_by_teacher"

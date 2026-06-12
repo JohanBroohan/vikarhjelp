@@ -15,7 +15,11 @@ import type {
   Teacher,
   Vikar,
 } from "@/lib/database.types";
-import type { CoverageStatus } from "@/lib/constants";
+import {
+  ABSENCE_TYPES,
+  DEFAULT_ABSENCE_TYPE,
+  type CoverageStatus,
+} from "@/lib/constants";
 import type { ActionResult } from "./_common";
 import { nullableText } from "./_common";
 
@@ -48,6 +52,8 @@ export interface ReportData {
   existing: Record<string, LessonDecision>;
   /** Saved absence window when re-opening (null = whole day / new absence). */
   absenceWindow: { from: string; to: string } | null;
+  /** Saved absence type slug (defaults to egenmelding for a new absence). */
+  absenceType: string;
 }
 
 /**
@@ -107,16 +113,25 @@ export async function loadReportData(
     };
   }
 
-  // Saved time window for this absence (if it was reported partial-day).
+  // Saved time window / type for this absence (if already reported).
   const absenceRow = absences.find((a) => a.teacher_id === absentTeacherId);
   const absenceWindow =
     absenceRow?.start_time && absenceRow?.end_time
       ? { from: absenceRow.start_time, to: absenceRow.end_time }
       : null;
+  const absenceType = absenceRow?.absence_type ?? DEFAULT_ABSENCE_TYPE;
 
   return {
     ok: true,
-    data: { weekday, lessons, vikars: availableVikars, teachersById, existing, absenceWindow },
+    data: {
+      weekday,
+      lessons,
+      vikars: availableVikars,
+      teachersById,
+      existing,
+      absenceWindow,
+      absenceType,
+    },
   };
 }
 
@@ -154,6 +169,8 @@ export interface SaveCoverageInput {
   date: string;
   absentTeacherId: string;
   reason?: string | null;
+  /** Absence type slug (see ABSENCE_TYPES). */
+  absenceType?: string;
   /** Partial-day window; null = whole day. */
   window?: { from: string; to: string } | null;
   /** Decisions for the in-scope lessons only (others get pruned). */
@@ -201,6 +218,11 @@ export async function saveCoverage(
     seen.set(key, d.lessonId);
   }
 
+  // Validate the absence type against the known list; fall back to the default.
+  const absenceType = ABSENCE_TYPES.some((t) => t.value === input.absenceType)
+    ? input.absenceType!
+    : DEFAULT_ABSENCE_TYPE;
+
   // Upsert the absence (one row per teacher per date), incl. the time window.
   const { error: absErr } = await supabase
     .from("absences")
@@ -209,6 +231,7 @@ export async function saveCoverage(
         teacher_id: input.absentTeacherId,
         date: input.date,
         reason: nullableText(input.reason),
+        absence_type: absenceType,
         start_time: input.window?.from ?? null,
         end_time: input.window?.to ?? null,
       },
