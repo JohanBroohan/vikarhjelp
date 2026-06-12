@@ -93,6 +93,7 @@ export function LiveBoard({ board }: { board: TodayBoard }) {
   let away = 0;
   if (now != null) {
     for (const t of board.teachers) {
+      if (t.role === "vikar") continue; // headline counts are about teachers
       const a = activityNow(t, now);
       if (a.state === "class") inClass += 1;
       else if (a.state === "borte") away += 1;
@@ -139,7 +140,14 @@ export function LiveBoard({ board }: { board: TodayBoard }) {
                   }`}
                   style={{ height: ROW_H }}
                 >
-                  <div className="truncate text-sm font-medium text-ink">{t.name}</div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="truncate text-sm font-medium text-ink">{t.name}</span>
+                    {t.role === "vikar" && (
+                      <span className="shrink-0 rounded bg-violet-100 px-1.5 py-0.5 text-[10px] font-medium text-violet-700">
+                        Vikar
+                      </span>
+                    )}
+                  </div>
                   {act && <StatusLine act={act} />}
                 </div>
               );

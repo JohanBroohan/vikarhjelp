@@ -38,9 +38,16 @@ export interface BoardLesson {
 export interface BoardTeacher {
   id: string;
   name: string;
+  role: "teacher" | "vikar";
   absent: boolean;
   absenceWindow: { from: string; to: string } | null;
   lessons: BoardLesson[];
+}
+
+/** Row order: present teachers, then working vikars, then absent teachers. */
+function rowRank(r: BoardTeacher): number {
+  if (r.role === "vikar") return 1;
+  return r.absent ? 2 : 0;
 }
 
 export interface BoardVikar {
@@ -175,16 +182,54 @@ export async function getTodayBoard(date: string): Promise<TodayBoard> {
     return {
       id: t.id,
       name: t.name,
+      role: "teacher" as const,
       absent: Boolean(absence),
       absenceWindow,
       lessons: [...own, ...covering].sort((a, b) => a.start.localeCompare(b.start)),
     };
   });
 
-  // Sort: present teachers first (alphabetical), absent ones last.
-  boardTeachers.sort(
-    (a, b) =>
-      Number(a.absent) - Number(b.absent) || a.name.localeCompare(b.name, "nb"),
+  // Vikar rows — only vikars actually working (covering ≥1 lesson) today.
+  const vikarRowMap = new Map<string, BoardTeacher>();
+  for (const a of assignments) {
+    if (!a.covering_vikar_id) continue;
+    const l = lessonById.get(a.lesson_id);
+    if (!l) continue;
+    track(l);
+    const { start, end } = lessonClock(l);
+    let row = vikarRowMap.get(a.covering_vikar_id);
+    if (!row) {
+      row = {
+        id: `vikar-${a.covering_vikar_id}`,
+        name: vikarName.get(a.covering_vikar_id) ?? "Vikar",
+        role: "vikar",
+        absent: false,
+        absenceWindow: null,
+        lessons: [],
+      };
+      vikarRowMap.set(a.covering_vikar_id, row);
+    }
+    row.lessons.push({
+      id: `vk-${a.id}`,
+      start,
+      end,
+      subject: l.subject,
+      classGroup: l.class_group,
+      room: l.room,
+      kind: "covering",
+      coveredAway: false,
+      coveringName: null,
+      coverForName: teacherName.get(a.absent_teacher_id) ?? "lærer",
+      status: a.status,
+    });
+  }
+  for (const row of vikarRowMap.values())
+    row.lessons.sort((a, b) => a.start.localeCompare(b.start));
+
+  // Combine: present teachers, then working vikars, then absent teachers.
+  const rows: BoardTeacher[] = [...boardTeachers, ...vikarRowMap.values()];
+  rows.sort(
+    (a, b) => rowRank(a) - rowRank(b) || a.name.localeCompare(b.name, "nb"),
   );
 
   // Sick today (with optional window).
@@ -241,7 +286,7 @@ export async function getTodayBoard(date: string): Promise<TodayBoard> {
     weekday,
     dayStart: minStart,
     dayEnd: maxEnd,
-    teachers: boardTeachers,
+    teachers: rows,
     sick,
     vikars,
     summary: { total: assignments.length, covered, pending, uncovered },
