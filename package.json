@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "seed": "tsx --env-file=.env.local scripts/seed.ts"
+    "seed": "tsx --env-file=.env.local scripts/seed.ts",
+    "add-teachers": "tsx --env-file=.env.local scripts/add-teachers.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",
