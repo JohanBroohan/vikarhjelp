@@ -3,20 +3,29 @@ import { todayISO } from "@/lib/format";
 import { Page, Card } from "@/components/ui";
 import { PhoneLink } from "@/components/PhoneLink";
 import { LiveBoard } from "./LiveBoard";
+import { DayNav } from "./DayNav";
 
-export default async function OversiktPage() {
+export default async function OversiktPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ date?: string }>;
+}) {
+  const { date: dateParam } = await searchParams;
   const today = todayISO();
-  const board = await getTodayBoard(today);
+  const date =
+    dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam) ? dateParam : today;
+  const isToday = date === today;
+  const board = await getTodayBoard(date);
 
   return (
     <Page fluid>
-      {/* No title/date and no action — this screen is shown on the faculty TV,
-          so it stays read-only and maximises vertical space. */}
+      {/* Compact day navigation (read-only screen, so no other actions). */}
+      <DayNav date={date} isToday={isToday} />
 
       {/* Large screens: timeline left, sick + vikars stacked on the right. */}
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
         <div className="min-w-0">
-          <LiveBoard board={board} />
+          <LiveBoard board={board} isToday={isToday} />
         </div>
 
         <div className="space-y-4 xl:mt-12">

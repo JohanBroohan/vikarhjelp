@@ -64,7 +64,13 @@ function activityNow(t: BoardTeacher, now: number): Activity {
   return { state: "free" };
 }
 
-export function LiveBoard({ board }: { board: TodayBoard }) {
+export function LiveBoard({
+  board,
+  isToday,
+}: {
+  board: TodayBoard;
+  isToday: boolean;
+}) {
   const router = useRouter();
   const [now, setNow] = useState<number | null>(null);
   const rowsRef = useRef<HTMLDivElement>(null);
@@ -166,7 +172,7 @@ export function LiveBoard({ board }: { board: TodayBoard }) {
   if (board.weekday == null) {
     return (
       <Card className="p-8 text-center text-muted">
-        Det er helg — ingen undervisning i dag.
+        Det er helg — ingen undervisning denne dagen.
       </Card>
     );
   }
@@ -179,7 +185,7 @@ export function LiveBoard({ board }: { board: TodayBoard }) {
   const ticks: number[] = [];
   for (let m = Math.ceil(startMin / 60) * 60; m <= endMin; m += 60) ticks.push(m);
 
-  const nowInRange = now != null && now >= startMin && now <= endMin;
+  const nowInRange = isToday && now != null && now >= startMin && now <= endMin;
 
   // Live headline counts.
   let inClass = 0;
@@ -197,22 +203,24 @@ export function LiveBoard({ board }: { board: TodayBoard }) {
 
   return (
     <div className="space-y-3">
-      {/* Headline */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-baseline gap-3">
-          <span className="tabular text-3xl font-semibold text-ink">
-            {now == null ? "––:––" : fmtClock(now)}
-          </span>
-          {now != null && (
-            <span className="text-sm text-muted">
-              <b className="text-emerald-700">{inClass}</b> i klasse ·{" "}
-              <b className="text-ink">{free}</b> ledige ·{" "}
-              <b className="text-red-700">{away}</b> borte
+      {/* Headline — live clock + counts (only meaningful for today) */}
+      {isToday && (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-baseline gap-3">
+            <span className="tabular text-3xl font-semibold text-ink">
+              {now == null ? "––:––" : fmtClock(now)}
             </span>
-          )}
+            {now != null && (
+              <span className="text-sm text-muted">
+                <b className="text-emerald-700">{inClass}</b> i klasse ·{" "}
+                <b className="text-ink">{free}</b> ledige ·{" "}
+                <b className="text-red-700">{away}</b> borte
+              </span>
+            )}
+          </div>
+          <span className="text-xs text-muted">Oppdateres automatisk</span>
         </div>
-        <span className="text-xs text-muted">Oppdateres automatisk</span>
-      </div>
+      )}
 
       <Card className="overflow-hidden">
         <div className="flex">
@@ -225,7 +233,7 @@ export function LiveBoard({ board }: { board: TodayBoard }) {
               Lærer
             </div>
             {board.teachers.map((t) => {
-              const act = now == null ? null : activityNow(t, now);
+              const act = isToday && now != null ? activityNow(t, now) : null;
               return (
                 <div
                   key={t.id}
