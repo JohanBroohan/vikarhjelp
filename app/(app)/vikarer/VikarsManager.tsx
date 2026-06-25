@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { Vikar } from "@/lib/database.types";
 import { WEEKDAYS, WEEKDAY_NAMES, WEEKDAY_SHORT } from "@/lib/constants";
-import { Button, Card, Field, Input, Textarea, EmptyState } from "@/components/ui";
+import { Button, Card, Field, Input, Textarea, EmptyState, PageHeader } from "@/components/ui";
 import { Modal } from "@/components/Modal";
 import { PhoneLink } from "@/components/PhoneLink";
 import {
@@ -38,9 +38,11 @@ export function VikarsManager({ vikars }: { vikars: Vikar[] }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
-        <Button onClick={() => setEditing({ mode: "new" })}>+ Ny vikar</Button>
-      </div>
+      <PageHeader
+        title="Vikarer"
+        description="Eksterne vikarer å ringe når ingen lærer er ledig."
+        actions={<Button onClick={() => setEditing({ mode: "new" })}>+ Ny vikar</Button>}
+      />
 
       {vikars.length === 0 ? (
         <EmptyState
