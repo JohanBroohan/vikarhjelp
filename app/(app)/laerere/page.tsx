@@ -15,8 +15,8 @@ export default async function TeachersPage() {
   return (
     <Page>
       <PageHeader
-        title="Lærere"
-        description="Administrer lærerne og deres ukentlige timeplan."
+        title="Ansatte"
+        description="Administrer ansatte og deres ukentlige timeplan."
       />
       <TeachersManager teachers={(teachers ?? []) as Teacher[]} />
     </Page>
