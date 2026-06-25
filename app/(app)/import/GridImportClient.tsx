@@ -3,7 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Card, Field, Input, Select } from "@/components/ui";
-import { WEEKDAY_SHORT } from "@/lib/constants";
+import { WEEKDAY_SHORT, PERIOD_TIMES } from "@/lib/constants";
 import {
   parseTeacherGrid,
   commitTeacherGrid,
@@ -27,6 +27,10 @@ export function GridImportClient({
   const [assign, setAssign] = useState<string>(""); // teacherId | NEW | ""
   const [newName, setNewName] = useState("");
 
+  // Editable per-row times (period -> {start,end}); lets the principal fix a
+  // wrong time in the preview before saving. All cells in a row share a time.
+  const [slotTimes, setSlotTimes] = useState<Record<number, { start: string; end: string }>>({});
+
   const [parsing, startParse] = useTransition();
   const [committing, startCommit] = useTransition();
 
@@ -43,6 +47,12 @@ export function GridImportClient({
       if (!res.ok) return setError(res.error);
       const data = res.data!;
       setResult(data);
+      // Seed the editable per-row times from the parsed grid (one per period).
+      const st: Record<number, { start: string; end: string }> = {};
+      for (const e of data.entries) {
+        if (!st[e.period]) st[e.period] = { start: e.start, end: e.end };
+      }
+      setSlotTimes(st);
       // Pre-select the teacher: match detected name, else offer to create it,
       // else fall back to the filename (minus extension).
       const detected =
@@ -63,10 +73,16 @@ export function GridImportClient({
     if (!result) return;
     setError(null);
     startCommit(async () => {
+      // Apply any edited times to the entries before saving.
+      const entries = result.entries.map((e) => ({
+        ...e,
+        start: slotTimes[e.period]?.start ?? e.start,
+        end: slotTimes[e.period]?.end ?? e.end,
+      }));
       const res = await commitTeacherGrid({
         teacherId: assign && assign !== NEW ? assign : undefined,
         newTeacherName: assign === NEW ? newName : undefined,
-        entries: result.entries,
+        entries,
       });
       if (!res.ok) return setError(res.error);
       setDone(res.data!);
@@ -129,7 +145,7 @@ export function GridImportClient({
         <>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             <Stat label="Aktiviteter totalt" value={result.entries.length} />
-            <Stat label="Klasser (dekkes)" value={result.classCount} tone="ok" />
+            <Stat label="Undervisningsøkter" value={result.classCount} tone="ok" />
             <Stat label="Annet (vises kun)" value={result.otherCount} />
           </div>
 
@@ -172,6 +188,50 @@ export function GridImportClient({
             </p>
           </Card>
 
+          {/* Editable times — one row per time slot. */}
+          <Card className="p-4">
+            <p className="text-sm font-medium text-ink">Tidspunkter</p>
+            <p className="mb-3 text-xs text-muted">
+              Endre et tidspunkt her hvis noe ble lest feil — det oppdaterer alle
+              aktiviteter i den raden.
+            </p>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {Object.keys(slotTimes)
+                .map(Number)
+                .sort((a, b) => a - b)
+                .map((p) => (
+                  <div key={p} className="flex items-center gap-2 text-sm">
+                    <span className="w-24 shrink-0 text-muted">
+                      {PERIOD_TIMES[p]?.label ?? `Rad ${p}`}
+                    </span>
+                    <input
+                      type="time"
+                      value={slotTimes[p].start}
+                      onChange={(ev) =>
+                        setSlotTimes((s) => ({
+                          ...s,
+                          [p]: { ...s[p], start: ev.target.value },
+                        }))
+                      }
+                      className="rounded-lg border border-line bg-surface px-2 py-1.5 outline-none focus:border-brand-500"
+                    />
+                    <span className="text-muted">–</span>
+                    <input
+                      type="time"
+                      value={slotTimes[p].end}
+                      onChange={(ev) =>
+                        setSlotTimes((s) => ({
+                          ...s,
+                          [p]: { ...s[p], end: ev.target.value },
+                        }))
+                      }
+                      className="rounded-lg border border-line bg-surface px-2 py-1.5 outline-none focus:border-brand-500"
+                    />
+                  </div>
+                ))}
+            </div>
+          </Card>
+
           <Card className="overflow-hidden">
             <div className="max-h-[420px] overflow-auto">
               <table className="w-full text-sm">
@@ -188,7 +248,9 @@ export function GridImportClient({
                   {result.entries.map((e, i) => (
                     <tr key={i} className="border-b border-line/60">
                       <td className="px-3 py-1.5">{WEEKDAY_SHORT[e.weekday]}</td>
-                      <td className="px-3 py-1.5 tabular text-muted">{e.start}–{e.end}</td>
+                      <td className="px-3 py-1.5 tabular text-muted">
+                        {slotTimes[e.period]?.start ?? e.start}–{slotTimes[e.period]?.end ?? e.end}
+                      </td>
                       <td className="px-3 py-1.5 font-medium text-ink">{e.subject}</td>
                       <td className="px-3 py-1.5 text-muted">{e.classGroup ?? "—"}</td>
                       <td className="px-3 py-1.5">
