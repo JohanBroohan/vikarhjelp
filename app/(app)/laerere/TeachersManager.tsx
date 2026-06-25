@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Teacher } from "@/lib/database.types";
-import { Button, Card, Field, Input, Select, EmptyState } from "@/components/ui";
+import { Button, Card, Field, Input, Select, EmptyState, PageHeader } from "@/components/ui";
 import { EMPLOYEE_ROLES, DEFAULT_EMPLOYEE_ROLE, roleLabel } from "@/lib/constants";
 import { Modal } from "@/components/Modal";
 import { PhoneLink } from "@/components/PhoneLink";
@@ -43,18 +43,22 @@ export function TeachersManager({ teachers }: { teachers: Teacher[] }) {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-end">
-        <Button onClick={() => setEditing({ mode: "new" })}>+ Ny ansatt</Button>
-      </div>
-
-      {teachers.length === 0 ? (
-        <EmptyState
-          title="Ingen lærere ennå"
-          description="Legg til lærere manuelt, eller importer timeplanen for å opprette dem automatisk."
-          action={<Button onClick={() => setEditing({ mode: "new" })}>+ Ny ansatt</Button>}
-        />
-      ) : (
+    <>
+      <PageHeader
+        title="Ansatte"
+        description="Administrer ansatte og deres ukentlige timeplan."
+        actions={
+          <Button onClick={() => setEditing({ mode: "new" })}>+ Ny ansatt</Button>
+        }
+      />
+      <div className="space-y-4">
+        {teachers.length === 0 ? (
+          <EmptyState
+            title="Ingen ansatte ennå"
+            description="Legg til ansatte manuelt, eller importer timeplanen for å opprette dem automatisk."
+            action={<Button onClick={() => setEditing({ mode: "new" })}>+ Ny ansatt</Button>}
+          />
+        ) : (
         <Card className="overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -128,15 +132,16 @@ export function TeachersManager({ teachers }: { teachers: Teacher[] }) {
         </Card>
       )}
 
-      <TeacherFormModal
-        editing={editing}
-        onClose={() => setEditing(null)}
-        onSaved={() => {
-          setEditing(null);
-          router.refresh();
-        }}
-      />
-    </div>
+        <TeacherFormModal
+          editing={editing}
+          onClose={() => setEditing(null)}
+          onSaved={() => {
+            setEditing(null);
+            router.refresh();
+          }}
+        />
+      </div>
+    </>
   );
 }
 
