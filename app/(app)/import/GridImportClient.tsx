@@ -3,7 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Card, Field, Input, Select } from "@/components/ui";
-import { WEEKDAY_SHORT, PERIOD_TIMES } from "@/lib/constants";
+import { WEEKDAY_SHORT } from "@/lib/constants";
 import {
   parseTeacherGrid,
   commitTeacherGrid,
@@ -188,50 +188,6 @@ export function GridImportClient({
             </p>
           </Card>
 
-          {/* Editable times — one row per time slot. */}
-          <Card className="p-4">
-            <p className="text-sm font-medium text-ink">Tidspunkter</p>
-            <p className="mb-3 text-xs text-muted">
-              Endre et tidspunkt her hvis noe ble lest feil — det oppdaterer alle
-              aktiviteter i den raden.
-            </p>
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {Object.keys(slotTimes)
-                .map(Number)
-                .sort((a, b) => a - b)
-                .map((p) => (
-                  <div key={p} className="flex items-center gap-2 text-sm">
-                    <span className="w-24 shrink-0 text-muted">
-                      {PERIOD_TIMES[p]?.label ?? `Rad ${p}`}
-                    </span>
-                    <input
-                      type="time"
-                      value={slotTimes[p].start}
-                      onChange={(ev) =>
-                        setSlotTimes((s) => ({
-                          ...s,
-                          [p]: { ...s[p], start: ev.target.value },
-                        }))
-                      }
-                      className="rounded-lg border border-line bg-surface px-2 py-1.5 outline-none focus:border-brand-500"
-                    />
-                    <span className="text-muted">–</span>
-                    <input
-                      type="time"
-                      value={slotTimes[p].end}
-                      onChange={(ev) =>
-                        setSlotTimes((s) => ({
-                          ...s,
-                          [p]: { ...s[p], end: ev.target.value },
-                        }))
-                      }
-                      className="rounded-lg border border-line bg-surface px-2 py-1.5 outline-none focus:border-brand-500"
-                    />
-                  </div>
-                ))}
-            </div>
-          </Card>
-
           <Card className="overflow-hidden">
             <div className="max-h-[420px] overflow-auto">
               <table className="w-full text-sm">
@@ -248,8 +204,38 @@ export function GridImportClient({
                   {result.entries.map((e, i) => (
                     <tr key={i} className="border-b border-line/60">
                       <td className="px-3 py-1.5">{WEEKDAY_SHORT[e.weekday]}</td>
-                      <td className="px-3 py-1.5 tabular text-muted">
-                        {slotTimes[e.period]?.start ?? e.start}–{slotTimes[e.period]?.end ?? e.end}
+                      <td className="px-3 py-1.5">
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="time"
+                            value={slotTimes[e.period]?.start ?? e.start}
+                            onChange={(ev) =>
+                              setSlotTimes((s) => ({
+                                ...s,
+                                [e.period]: {
+                                  start: ev.target.value,
+                                  end: s[e.period]?.end ?? e.end,
+                                },
+                              }))
+                            }
+                            className="w-[84px] rounded border border-line bg-surface px-1.5 py-1 text-xs tabular outline-none focus:border-brand-500"
+                          />
+                          <span className="text-muted">–</span>
+                          <input
+                            type="time"
+                            value={slotTimes[e.period]?.end ?? e.end}
+                            onChange={(ev) =>
+                              setSlotTimes((s) => ({
+                                ...s,
+                                [e.period]: {
+                                  start: s[e.period]?.start ?? e.start,
+                                  end: ev.target.value,
+                                },
+                              }))
+                            }
+                            className="w-[84px] rounded border border-line bg-surface px-1.5 py-1 text-xs tabular outline-none focus:border-brand-500"
+                          />
+                        </div>
                       </td>
                       <td className="px-3 py-1.5 font-medium text-ink">{e.subject}</td>
                       <td className="px-3 py-1.5 text-muted">{e.classGroup ?? "—"}</td>
