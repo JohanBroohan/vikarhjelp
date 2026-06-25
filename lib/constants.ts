@@ -68,6 +68,33 @@ export function isClassActivity(subject: string | null | undefined): boolean {
 }
 
 /**
+ * Non-teaching activities that DON'T tie a teacher up — they're flexible desk
+ * time, so the teacher can still be pulled in to cover another class. Everything
+ * else (classes, plus duties like supervision/meetings/breaks) keeps them busy.
+ */
+export const AVAILABLE_KEYWORDS = [
+  "kontor",
+  "planlegging",
+  "forberedelse",
+  "fri",
+  "ledig",
+];
+
+/**
+ * Does this activity make the teacher unavailable to cover another class?
+ *  - empty slot  -> false (free)
+ *  - a class     -> true  (teaching)
+ *  - "Kontor" etc -> false (flexible, can be pulled in)
+ *  - other duties -> true  (supervision, meeting, break, …)
+ */
+export function occupiesTeacher(subject: string | null | undefined): boolean {
+  const s = (subject ?? "").trim().toLowerCase();
+  if (!s) return false;
+  if (isClassActivity(subject)) return true;
+  return !AVAILABLE_KEYWORDS.some((k) => s.includes(k));
+}
+
+/**
  * Effective clock times for a lesson — its own start/end if set, otherwise the
  * default period clock. Used to decide whether a lesson falls inside a
  * partial-day absence window.

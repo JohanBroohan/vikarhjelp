@@ -10,7 +10,7 @@ import type {
   Lesson,
   Teacher,
 } from "./database.types";
-import { isClassActivity } from "./constants";
+import { isClassActivity, occupiesTeacher } from "./constants";
 
 /* -------------------------------------------------------------------------- */
 /* Date helpers (timezone-safe — operate on YYYY-MM-DD strings)               */
@@ -37,7 +37,11 @@ export function monthKey(date: string): string {
 /* Building blocks                                                            */
 /* -------------------------------------------------------------------------- */
 
-/** teacherId -> set of periods that teacher teaches on the given weekday. */
+/**
+ * teacherId -> set of periods the teacher is *occupied* on the given weekday.
+ * Office time ("Kontor") and other flexible slots don't count, so those
+ * teachers remain available to cover.
+ */
 export function buildTeacherOwnPeriods(
   lessons: Lesson[],
   weekday: number,
@@ -45,6 +49,7 @@ export function buildTeacherOwnPeriods(
   const map = new Map<string, Set<number>>();
   for (const l of lessons) {
     if (l.weekday !== weekday) continue;
+    if (!occupiesTeacher(l.subject)) continue;
     let set = map.get(l.teacher_id);
     if (!set) map.set(l.teacher_id, (set = new Set()));
     set.add(l.period);

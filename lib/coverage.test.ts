@@ -309,6 +309,24 @@ describe("computeCoveragePlan", () => {
     expect(plan.lessons[0].availableTeachers.map((r) => r.teacher.id)).toEqual(["bjorn"]);
   });
 
+  it("a teacher on office time (Kontor) is available to cover; a duty (Tilsyn) is not", () => {
+    const annaClass = lesson({ id: "anna-c", teacher_id: "anna", weekday: 1, period: 1, subject: "Matematikk" });
+    const bjornKontor = lesson({ id: "bj-k", teacher_id: "bjorn", weekday: 1, period: 1, subject: "Kontor" });
+    const cecTilsyn = lesson({ id: "cec-t", teacher_id: "cecilie", weekday: 1, period: 1, subject: "Tilsyn" });
+
+    const plan = computeCoveragePlan({
+      date: "2026-06-08", // Monday
+      absentTeacherId: "anna",
+      teachers: [anna, bjorn, cecilie],
+      allLessons: [annaClass, bjornKontor, cecTilsyn],
+      absences: [],
+      assignments: [],
+    });
+
+    // Bjørn (Kontor) can be pulled in; Cecilie (Tilsyn) cannot.
+    expect(plan.lessons[0].availableTeachers.map((r) => r.teacher.id)).toEqual(["bjorn"]);
+  });
+
   it("returns no lessons for a weekend date", () => {
     const plan = computeCoveragePlan({
       date: "2026-06-13", // Saturday
