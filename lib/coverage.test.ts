@@ -20,7 +20,7 @@ import { lessonInWindow } from "./constants";
 /* ---- tiny builders ------------------------------------------------------- */
 
 function teacher(id: string, name: string, is_active = true): Teacher {
-  return { id, name, phone: null, email: null, is_active, created_at: "" };
+  return { id, name, phone: null, email: null, is_active, role: "laerer", created_at: "" };
 }
 let lid = 0;
 function lesson(p: Partial<Lesson> & { teacher_id: string; weekday: number; period: number }): Lesson {

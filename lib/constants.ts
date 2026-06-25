@@ -124,6 +124,19 @@ export function lessonInWindow(
   return start < window.to && end > window.from;
 }
 
+/** Employee roles ("stilling"). Stored as a slug on the teachers table. */
+export const EMPLOYEE_ROLES: { value: string; label: string }[] = [
+  { value: "laerer", label: "Lærer" },
+  { value: "fagarbeider", label: "Fagarbeider" },
+  { value: "assistent", label: "Assistent" },
+  { value: "administrasjon", label: "Administrasjon" },
+];
+export const DEFAULT_EMPLOYEE_ROLE = "laerer";
+
+export function roleLabel(value: string | null | undefined): string {
+  return EMPLOYEE_ROLES.find((r) => r.value === value)?.label ?? "Lærer";
+}
+
 /** Weekdays Monday=1 .. Friday=5 (the only schedulable days). */
 export const WEEKDAYS = [1, 2, 3, 4, 5] as const;
 export type Weekday = (typeof WEEKDAYS)[number];

@@ -14,6 +14,7 @@ export type Teacher = {
   phone: string | null;
   email: string | null;
   is_active: boolean;
+  role: string; // slug, see EMPLOYEE_ROLES (default "laerer")
   created_at: string;
 };
 

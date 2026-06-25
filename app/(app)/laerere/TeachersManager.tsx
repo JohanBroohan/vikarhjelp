@@ -4,7 +4,8 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Teacher } from "@/lib/database.types";
-import { Button, Card, Field, Input, EmptyState } from "@/components/ui";
+import { Button, Card, Field, Input, Select, EmptyState } from "@/components/ui";
+import { EMPLOYEE_ROLES, DEFAULT_EMPLOYEE_ROLE, roleLabel } from "@/lib/constants";
 import { Modal } from "@/components/Modal";
 import { PhoneLink } from "@/components/PhoneLink";
 import {
@@ -44,14 +45,14 @@ export function TeachersManager({ teachers }: { teachers: Teacher[] }) {
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
-        <Button onClick={() => setEditing({ mode: "new" })}>+ Ny lærer</Button>
+        <Button onClick={() => setEditing({ mode: "new" })}>+ Ny ansatt</Button>
       </div>
 
       {teachers.length === 0 ? (
         <EmptyState
           title="Ingen lærere ennå"
           description="Legg til lærere manuelt, eller importer timeplanen for å opprette dem automatisk."
-          action={<Button onClick={() => setEditing({ mode: "new" })}>+ Ny lærer</Button>}
+          action={<Button onClick={() => setEditing({ mode: "new" })}>+ Ny ansatt</Button>}
         />
       ) : (
         <Card className="overflow-hidden">
@@ -60,6 +61,7 @@ export function TeachersManager({ teachers }: { teachers: Teacher[] }) {
               <thead>
                 <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
                   <th className="px-4 py-3 font-medium">Navn</th>
+                  <th className="px-4 py-3 font-medium">Stilling</th>
                   <th className="px-4 py-3 font-medium">Telefon</th>
                   <th className="px-4 py-3 font-medium">E-post</th>
                   <th className="px-4 py-3 font-medium">Status</th>
@@ -80,6 +82,7 @@ export function TeachersManager({ teachers }: { teachers: Teacher[] }) {
                         {t.name}
                       </Link>
                     </td>
+                    <td className="px-4 py-3 text-muted">{roleLabel(t.role)}</td>
                     <td className="px-4 py-3">
                       <PhoneLink phone={t.phone} />
                     </td>
@@ -150,6 +153,7 @@ function TeacherFormModal({
   const teacher = editing?.mode === "edit" ? editing.teacher : null;
 
   const [name, setName] = useState("");
+  const [role, setRole] = useState(DEFAULT_EMPLOYEE_ROLE);
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -161,6 +165,7 @@ function TeacherFormModal({
   if (key !== lastKey) {
     setLastKey(key);
     setName(teacher?.name ?? "");
+    setRole(teacher?.role ?? DEFAULT_EMPLOYEE_ROLE);
     setPhone(teacher?.phone ?? "");
     setEmail(teacher?.email ?? "");
     setError(null);
@@ -170,7 +175,7 @@ function TeacherFormModal({
     e.preventDefault();
     setError(null);
     startTransition(async () => {
-      const payload = { name, phone, email };
+      const payload = { name, role, phone, email };
       const res =
         isEdit && teacher
           ? await updateTeacher(teacher.id, payload)
@@ -187,12 +192,23 @@ function TeacherFormModal({
     <Modal
       open={editing !== null}
       onClose={onClose}
-      title={isEdit ? "Rediger lærer" : "Ny lærer"}
+      title={isEdit ? "Rediger ansatt" : "Ny ansatt"}
     >
       <form onSubmit={submit} className="space-y-4">
-        <Field label="Navn">
-          <Input value={name} onChange={(e) => setName(e.target.value)} required autoFocus />
-        </Field>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label="Navn">
+            <Input value={name} onChange={(e) => setName(e.target.value)} required autoFocus />
+          </Field>
+          <Field label="Stilling">
+            <Select value={role} onChange={(e) => setRole(e.target.value)}>
+              {EMPLOYEE_ROLES.map((r) => (
+                <option key={r.value} value={r.value}>
+                  {r.label}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Telefon">
             <Input value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" />

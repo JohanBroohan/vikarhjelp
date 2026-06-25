@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth";
+import { EMPLOYEE_ROLES, DEFAULT_EMPLOYEE_ROLE } from "@/lib/constants";
 import { type ActionResult, nullableText, requiredText } from "./_common";
 
 export interface TeacherInput {
@@ -10,6 +11,14 @@ export interface TeacherInput {
   phone?: string | null;
   email?: string | null;
   is_active?: boolean;
+  role?: string;
+}
+
+/** Validate a role slug against the known list; fall back to the default. */
+function safeRole(role: string | undefined): string {
+  return EMPLOYEE_ROLES.some((r) => r.value === role)
+    ? role!
+    : DEFAULT_EMPLOYEE_ROLE;
 }
 
 function revalidateTeacherViews() {
@@ -30,6 +39,7 @@ export async function createTeacher(input: TeacherInput): Promise<ActionResult> 
     phone: nullableText(input.phone),
     email: nullableText(input.email),
     is_active: input.is_active ?? true,
+    role: safeRole(input.role),
   });
   if (error) return { ok: false, error: error.message };
 
@@ -52,6 +62,7 @@ export async function updateTeacher(
       name,
       phone: nullableText(input.phone),
       email: nullableText(input.email),
+      ...(input.role === undefined ? {} : { role: safeRole(input.role) }),
       ...(input.is_active === undefined ? {} : { is_active: input.is_active }),
     })
     .eq("id", id);
