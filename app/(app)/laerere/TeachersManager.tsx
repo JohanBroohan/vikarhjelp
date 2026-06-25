@@ -16,13 +16,7 @@ import {
 
 type Editing = { mode: "new" } | { mode: "edit"; teacher: Teacher } | null;
 
-export function TeachersManager({
-  teachers,
-  lessonCounts,
-}: {
-  teachers: Teacher[];
-  lessonCounts: Record<string, number>;
-}) {
+export function TeachersManager({ teachers }: { teachers: Teacher[] }) {
   const router = useRouter();
   const [editing, setEditing] = useState<Editing>(null);
   const [pending, startTransition] = useTransition();
@@ -68,7 +62,6 @@ export function TeachersManager({
                   <th className="px-4 py-3 font-medium">Navn</th>
                   <th className="px-4 py-3 font-medium">Telefon</th>
                   <th className="px-4 py-3 font-medium">E-post</th>
-                  <th className="px-4 py-3 font-medium">Timer/uke</th>
                   <th className="px-4 py-3 font-medium">Status</th>
                   <th className="px-4 py-3 text-right font-medium">Handlinger</th>
                 </tr>
@@ -91,9 +84,6 @@ export function TeachersManager({
                       <PhoneLink phone={t.phone} />
                     </td>
                     <td className="px-4 py-3 text-muted">{t.email ?? "—"}</td>
-                    <td className="px-4 py-3 tabular text-muted">
-                      {lessonCounts[t.id] ?? 0}
-                    </td>
                     <td className="px-4 py-3">
                       <button
                         onClick={() => toggleActive(t)}
