@@ -309,19 +309,18 @@ function LessonCard({
   return (
     <Card className="overflow-hidden">
       <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr]">
-        {/* Left: lesson identity */}
+        {/* Left: lesson identity — time, subject (fag), class (trinn) */}
         <div className="border-b border-line bg-canvas/50 p-4 lg:border-b-0 lg:border-r">
-          <div className="flex items-baseline gap-2">
-            <span className="text-lg font-semibold text-ink">{lesson.period}. time</span>
-            <span className="tabular text-xs text-muted">
-              {lesson.start_time ?? PERIOD_TIMES[lesson.period]?.start}
-              {lesson.end_time ? `–${lesson.end_time}` : ""}
-            </span>
+          <div className="tabular text-lg font-semibold text-ink">
+            {lesson.start_time ?? PERIOD_TIMES[lesson.period]?.start}
+            {(lesson.end_time ?? PERIOD_TIMES[lesson.period]?.end)
+              ? `–${lesson.end_time ?? PERIOD_TIMES[lesson.period]?.end}`
+              : ""}
           </div>
           <div className="mt-1 font-medium text-ink">{lesson.subject ?? "Time"}</div>
-          <div className="text-sm text-muted">
-            {[lesson.class_group, lesson.room].filter(Boolean).join(" · ") || "—"}
-          </div>
+          {lesson.class_group && (
+            <div className="text-sm text-muted">{lesson.class_group}</div>
+          )}
           <div className="mt-3">
             <CardStatusPill kind={kind} />
           </div>
