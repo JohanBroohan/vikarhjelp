@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { Page, PageHeader } from "@/components/ui";
+import { Page } from "@/components/ui";
 import type { Vikar } from "@/lib/database.types";
 import { VikarsManager } from "./VikarsManager";
 
@@ -13,10 +13,6 @@ export default async function VikarsPage() {
 
   return (
     <Page>
-      <PageHeader
-        title="Vikarer"
-        description="Eksterne vikarer å ringe når ingen lærer er ledig."
-      />
       <VikarsManager vikars={(vikars ?? []) as Vikar[]} />
     </Page>
   );
