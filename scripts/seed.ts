@@ -27,10 +27,17 @@ const db = createClient(url, serviceKey, {
 });
 
 // --- Period clock (display only) -------------------------------------------
-// Montessori school: two long work cycles per day.
+// Canonical daily time slots (must match PERIOD_TIMES in lib/constants.ts).
 const TIMES: Record<number, [string, string]> = {
-  1: ["08:30", "11:30"],
-  2: ["12:30", "15:00"],
+  1: ["07:30", "08:00"],
+  2: ["08:00", "08:30"],
+  3: ["08:30", "11:30"], // 1. økt
+  4: ["11:30", "12:00"],
+  5: ["12:00", "12:30"],
+  6: ["12:30", "13:00"],
+  7: ["13:00", "15:00"], // 2. økt
+  8: ["15:00", "16:00"],
+  9: ["16:00", "16:30"],
 };
 
 // --- Staff ------------------------------------------------------------------
@@ -54,67 +61,69 @@ const VIKARS = [
 ];
 
 // --- Timetable --------------------------------------------------------------
-// [weekday(1-5), period(1-2), subject, class_group, room]
-// Montessori school: two long work cycles ("timer") per day.
+// [weekday(1-5), period(1-9), subject, class_group, room]
+// Classes mostly sit in the work cycles (period 3 = "1. økt", period 7 =
+// "2. økt"); a few non-teaching items (Kontor, Tilsyn, Teammøte) show how
+// office time / duties appear on the board.
 // Co-teaching = two teachers with the same weekday+period+class_group.
 type L = [number, number, string, string, string];
 
 const SCHEDULE: Record<string, L[]> = {
   anna: [ // Matematikk / Naturfag
-    [1, 1, "Matematikk", "8A", "R12"],
-    [2, 1, "Naturfag",   "9A", "Nat1"], // co-taught with David
-    [3, 2, "Matematikk", "8A", "R12"],
-    [4, 1, "Naturfag",   "8A", "Nat1"],
-    [5, 2, "Matematikk", "8B", "R12"],
+    [1, 3, "Matematikk", "8A", "R12"],
+    [2, 3, "Naturfag",   "9A", "Nat1"], // co-taught with David
+    [3, 2, "Kontor",     "", ""],
+    [4, 3, "Naturfag",   "8A", "Nat1"],
+    [5, 7, "Matematikk", "8B", "R12"],
   ],
   bjorn: [ // Norsk / Samfunnsfag
-    [1, 1, "Norsk",       "8A", "R14"], // co-taught with Eva
-    [2, 2, "Samfunnsfag", "9A", "R14"],
-    [3, 1, "Norsk",       "9B", "R14"],
-    [4, 2, "Samfunnsfag", "10A", "R14"],
-    [5, 1, "Norsk",       "9A", "R14"],
+    [1, 3, "Norsk",       "8A", "R14"], // co-taught with Eva
+    [2, 7, "Samfunnsfag", "9A", "R14"],
+    [3, 5, "Tilsyn",      "", ""],
+    [4, 3, "Samfunnsfag", "10A", "R14"],
+    [5, 3, "Norsk",       "9A", "R14"],
   ],
   cecilie: [ // Engelsk
-    [1, 2, "Engelsk", "9A", "R21"],
-    [2, 1, "Engelsk", "9B", "R21"],
-    [3, 2, "Engelsk", "10A", "R21"],
-    [4, 1, "Engelsk", "8B", "R21"],
-    [5, 2, "Engelsk", "9A", "R21"],
+    [1, 7, "Engelsk", "9A", "R21"],
+    [2, 3, "Engelsk", "9B", "R21"],
+    [3, 7, "Engelsk", "10A", "R21"],
+    [4, 3, "Engelsk", "8B", "R21"],
+    [5, 7, "Engelsk", "9A", "R21"],
   ],
   david: [ // Kroppsøving / Naturfag
-    [1, 2, "Kroppsøving", "8A", "Gymsal"],
-    [2, 1, "Naturfag",    "9A", "Nat1"], // co-taught with Anna
-    [3, 1, "Kroppsøving", "8B", "Gymsal"],
-    [4, 2, "Naturfag",    "10A", "Nat1"],
-    [5, 1, "Kroppsøving", "9B", "Gymsal"],
+    [1, 7, "Kroppsøving", "8A", "Gymsal"],
+    [2, 3, "Naturfag",    "9A", "Nat1"], // co-taught with Anna
+    [3, 3, "Kroppsøving", "8B", "Gymsal"],
+    [4, 7, "Naturfag",    "10A", "Nat1"],
+    [5, 3, "Kroppsøving", "9B", "Gymsal"],
   ],
   eva: [ // Norsk / KRLE
-    [1, 1, "Norsk", "8A", "R14"], // co-taught with Bjørn
-    [2, 2, "Norsk", "10A", "R18"],
-    [3, 1, "KRLE",  "9A", "R18"],
-    [4, 2, "Norsk", "8A", "R18"],
-    [5, 1, "KRLE",  "8A", "R18"],
+    [1, 3, "Norsk",     "8A", "R14"], // co-taught with Bjørn
+    [2, 7, "Norsk",     "10A", "R18"],
+    [3, 3, "KRLE",      "9A", "R18"],
+    [4, 7, "Norsk",     "8A", "R18"],
+    [5, 6, "Teammøte",  "", ""],
   ],
   frode: [ // Matematikk
-    [1, 2, "Matematikk", "9A", "R13"],
-    [2, 1, "Matematikk", "10A", "R13"],
-    [3, 2, "Matematikk", "9A", "R13"],
-    [4, 1, "Matematikk", "10A", "R13"],
-    [5, 2, "Matematikk", "8A", "R13"],
+    [1, 7, "Matematikk", "9A", "R13"],
+    [2, 3, "Matematikk", "10A", "R13"],
+    [3, 7, "Matematikk", "9A", "R13"],
+    [4, 3, "Matematikk", "10A", "R13"],
+    [5, 3, "Matematikk", "8A", "R13"],
   ],
   guro: [ // Kunst og håndverk / Musikk
-    [1, 2, "Kunst og håndverk", "8A", "Kunst"],
-    [2, 2, "Musikk",            "9A", "Musikk"],
-    [3, 1, "Kunst og håndverk", "9B", "Kunst"],
-    [4, 2, "Musikk",            "8B", "Musikk"],
-    [5, 1, "Kunst og håndverk", "10A", "Kunst"],
+    [1, 3, "Kunst og håndverk", "8A", "Kunst"],
+    [2, 7, "Musikk",            "9A", "Musikk"],
+    [3, 3, "Kunst og håndverk", "9B", "Kunst"],
+    [4, 7, "Musikk",            "8B", "Musikk"],
+    [5, 3, "Kunst og håndverk", "10A", "Kunst"],
   ],
   henrik: [ // Samfunnsfag / Engelsk
-    [1, 1, "Samfunnsfag", "10A", "R16"],
-    [2, 2, "Engelsk",     "8A", "R16"],
-    [3, 1, "Samfunnsfag", "8A", "R16"],
-    [4, 2, "Engelsk",     "9A", "R16"],
-    [5, 1, "Samfunnsfag", "10A", "R16"],
+    [1, 3, "Samfunnsfag", "10A", "R16"],
+    [2, 7, "Engelsk",     "8A", "R16"],
+    [3, 3, "Samfunnsfag", "8A", "R16"],
+    [4, 7, "Engelsk",     "9A", "R16"],
+    [5, 7, "Samfunnsfag", "10A", "R16"],
   ],
 };
 
@@ -168,8 +177,8 @@ async function main() {
   console.log(
     `\n✓ Ferdig: ${TEACHERS.length} lærere, ${VIKARS.length} vikarer, ` +
       `${lessonRows.length} timer.\n` +
-      `  Co-teaching: Anna+David (tir. 1. time, 9A Naturfag), ` +
-      `Bjørn+Eva (man. 1. time, 8A Norsk).\n`,
+      `  Co-teaching: Anna+David (tir. 1. økt, 9A Naturfag), ` +
+      `Bjørn+Eva (man. 1. økt, 8A Norsk).\n`,
   );
 }
 

@@ -10,6 +10,7 @@ import type {
   Lesson,
   Teacher,
 } from "./database.types";
+import { isClassActivity } from "./constants";
 
 /* -------------------------------------------------------------------------- */
 /* Date helpers (timezone-safe — operate on YYYY-MM-DD strings)               */
@@ -112,15 +113,19 @@ export function coTeachersForLesson(
   absentTeacherIds: Set<string>,
 ): { allIds: string[]; presentIds: string[] } {
   const allIds = new Set<string>();
-  for (const l of lessons) {
-    if (l.id === lesson.id) continue;
-    if (l.teacher_id === lesson.teacher_id) continue;
-    if (
-      l.weekday === lesson.weekday &&
-      l.period === lesson.period &&
-      sameClassGroup(l.class_group, lesson.class_group)
-    ) {
-      allIds.add(l.teacher_id);
+  // Co-teaching only makes sense for actual classes with a known class group.
+  if (lesson.class_group && lesson.class_group.trim()) {
+    for (const l of lessons) {
+      if (l.id === lesson.id) continue;
+      if (l.teacher_id === lesson.teacher_id) continue;
+      if (
+        l.weekday === lesson.weekday &&
+        l.period === lesson.period &&
+        isClassActivity(l.subject) &&
+        sameClassGroup(l.class_group, lesson.class_group)
+      ) {
+        allIds.add(l.teacher_id);
+      }
     }
   }
   const presentIds = [...allIds].filter((id) => !absentTeacherIds.has(id));
@@ -247,8 +252,15 @@ export function computeCoveragePlan(input: CoveragePlanInput): {
     monthlyCoverCounts: countMonthlyCovers(input.assignments, input.date),
   };
 
+  // Only the sick teacher's actual classes need covering — non-teaching
+  // activities (office time, breaks, supervision, meetings) are skipped.
   const sickLessons = input.allLessons
-    .filter((l) => l.teacher_id === input.absentTeacherId && l.weekday === weekday)
+    .filter(
+      (l) =>
+        l.teacher_id === input.absentTeacherId &&
+        l.weekday === weekday &&
+        isClassActivity(l.subject),
+    )
     .sort((a, b) => a.period - b.period);
 
   const lessons: LessonCoverage[] = sickLessons.map((lesson) => {

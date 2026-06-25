@@ -1,11 +1,12 @@
 // Downloadable CSV template so the principal knows the exact import format.
 // Opens cleanly in Excel and Numbers.
 
-// Montessori school: 2 work cycles per day, so period is 1 or 2.
+// `period` is the slot number (1..9) from the school's time grid — e.g. 3 is
+// the morning work cycle "1. økt", 7 is the afternoon "2. økt".
 const TEMPLATE = `teacher_name,weekday,period,subject,class_group,room
-Anna Berg,man,1,Matematikk,8A,R12
-Anna Berg,tir,1,Naturfag,9A,Nat1
-Bjørn Dahl,man,2,Norsk,8A,R14
+Anna Berg,man,3,Matematikk,8A,R12
+Anna Berg,tir,3,Naturfag,9A,Nat1
+Bjørn Dahl,man,7,Norsk,8A,R14
 `;
 
 export async function GET() {

@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { weekdayFromISODate } from "@/lib/coverage";
 import {
   lessonClock,
+  isClassActivity,
   SCHOOL_DAY_START,
   SCHOOL_DAY_END,
   type CoverageStatus,
@@ -25,6 +26,8 @@ export interface BoardLesson {
   subject: string | null;
   classGroup: string | null;
   room: string | null;
+  /** A real class (vs. a non-teaching activity like office time / a break). */
+  isClass: boolean;
   kind: "own" | "covering";
   /** Own lesson the teacher is absent for (covered by someone else). */
   coveredAway: boolean;
@@ -147,6 +150,7 @@ export async function getTodayBoard(date: string): Promise<TodayBoard> {
           subject: l.subject,
           classGroup: l.class_group,
           room: l.room,
+          isClass: isClassActivity(l.subject),
           kind: "own" as const,
           coveredAway: Boolean(a),
           coveringName: a ? coverName(a) : null,
@@ -170,6 +174,7 @@ export async function getTodayBoard(date: string): Promise<TodayBoard> {
           subject: l.subject,
           classGroup: l.class_group,
           room: l.room,
+          isClass: true,
           kind: "covering" as const,
           coveredAway: false,
           coveringName: null,
@@ -216,6 +221,7 @@ export async function getTodayBoard(date: string): Promise<TodayBoard> {
       subject: l.subject,
       classGroup: l.class_group,
       room: l.room,
+      isClass: true,
       kind: "covering",
       coveredAway: false,
       coveringName: null,

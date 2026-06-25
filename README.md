@@ -108,7 +108,7 @@ write everything** (there's only one user). The full SQL is in
 |---|---|---|
 | **teachers** | School staff | `name`, `phone`, `email`, `is_active` |
 | **vikars** | External substitutes | `name`, `phone`, `email`, `notes`, `is_active`, `unavailable_weekdays` (weekdays they can't work) |
-| **lessons** | The fixed weekly timetable, one row per recurring slot | `teacher_id`, `weekday` (1–5), `period` (1–2, Montessori work cycles — set by `PERIOD_COUNT` in `lib/constants.ts`), `subject`, `class_group`, `room`, `start_time`/`end_time` |
+| **lessons** | The fixed weekly timetable, one row per recurring slot | `teacher_id`, `weekday` (1–5), `period` (1..N daily time slots — defined in `PERIOD_TIMES` in `lib/constants.ts`), `subject`, `class_group`, `room`, `start_time`/`end_time` |
 | **absences** | A teacher is out on a date | `teacher_id`, `date`, `reason` |
 | **coverage_assignments** | One row per lesson that needed covering on a date | `date`, `lesson_id`, `absent_teacher_id`, `covering_teacher_id?`, `covering_vikar_id?`, `status`, `is_settled`, `settled_at`, `notes` |
 

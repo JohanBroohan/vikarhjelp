@@ -7,6 +7,7 @@ import {
   PERIOD_TIMES,
   WEEKDAYS,
   WEEKDAY_NAMES,
+  isClassActivity,
   type CoverageStatus,
 } from "@/lib/constants";
 import {
@@ -148,13 +149,16 @@ export function TimetableView({
                         <div className="flex flex-col gap-1">
                           {items.map((l) => {
                             const cover = overlay[l.id];
+                            const isClass = isClassActivity(l.subject);
                             return (
                               <div
                                 key={l.id}
                                 className={`rounded-md px-2 py-1 ring-1 ${
                                   cover
                                     ? "bg-canvas ring-line"
-                                    : "bg-brand-50/60 ring-brand-100"
+                                    : isClass
+                                      ? "bg-brand-50/60 ring-brand-100"
+                                      : "bg-canvas/70 ring-line"
                                 }`}
                               >
                                 <div className="font-medium text-ink">

@@ -224,7 +224,7 @@ describe("lessonInWindow", () => {
   });
 
   it("falls back to default period clock when a lesson has no explicit times", () => {
-    const noTimes = lesson({ teacher_id: "x", weekday: 1, period: 1 }); // period 1 => 08:30–11:30
+    const noTimes = lesson({ teacher_id: "x", weekday: 1, period: 3 }); // period 3 => 08:30–11:30
     expect(lessonInWindow(noTimes, { from: "09:00", to: "10:00" })).toBe(true);
     expect(lessonInWindow(noTimes, { from: "13:00", to: "14:00" })).toBe(false);
   });
@@ -285,6 +285,28 @@ describe("computeCoveragePlan", () => {
     });
     expect(plan.lessons[0].needsVikar).toBe(true);
     expect(plan.lessons[0].availableTeachers).toEqual([]);
+  });
+
+  it("only counts real classes as needing cover; non-teaching is skipped but still makes a teacher busy", () => {
+    // Anna (Monday): a class at P1, plus office time ("Kontor") at P2.
+    const annaClass = lesson({ id: "anna-c", teacher_id: "anna", weekday: 1, period: 1, subject: "Matematikk" });
+    const annaKontor = lesson({ id: "anna-k", teacher_id: "anna", weekday: 1, period: 2, subject: "Kontor" });
+    // Bjørn is free at P1; Cecilie is on "Tilsyn" (supervision) at P1 -> busy.
+    const cecTilsyn = lesson({ id: "cec-t", teacher_id: "cecilie", weekday: 1, period: 1, subject: "Tilsyn" });
+
+    const plan = computeCoveragePlan({
+      date: "2026-06-08", // Monday
+      absentTeacherId: "anna",
+      teachers: [anna, bjorn, cecilie],
+      allLessons: [annaClass, annaKontor, cecTilsyn],
+      absences: [],
+      assignments: [],
+    });
+
+    // Only the class needs covering — the "Kontor" slot is not surfaced.
+    expect(plan.lessons.map((l) => l.lesson.id)).toEqual(["anna-c"]);
+    // Cecilie is busy with supervision at P1, so only Bjørn can cover.
+    expect(plan.lessons[0].availableTeachers.map((r) => r.teacher.id)).toEqual(["bjorn"]);
   });
 
   it("returns no lessons for a weekend date", () => {

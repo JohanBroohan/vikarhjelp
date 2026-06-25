@@ -2,28 +2,70 @@
 // in Norwegian (bokmål) since the principal is the only user.
 
 /**
- * Periods ("timer") per school day. The grid runs period 1..PERIOD_COUNT.
- * This is a Montessori school with two long work cycles per day, so 2.
- * Change this single value to support a different number of periods.
+ * The school's canonical daily time slots, taken from the staff timetable
+ * template (one row per slot, identical for every teacher and every week). The
+ * importer maps each grid row to one of these by its start time, and the
+ * coverage engine uses `period` (= the slot number below) as the scheduling
+ * slot. Edit this list if the school's bell schedule changes.
  */
-export const PERIOD_COUNT = 2;
-export const PERIODS: number[] = Array.from(
-  { length: PERIOD_COUNT },
-  (_, i) => i + 1,
-);
-
-/**
- * Default clock for each period (display only; used to prefill the editor).
- * Two Montessori work cycles: a long morning block and an afternoon block.
- */
-export const PERIOD_TIMES: Record<number, { start: string; end: string }> = {
-  1: { start: "08:30", end: "11:30" },
-  2: { start: "12:30", end: "15:00" },
+export const PERIOD_TIMES: Record<
+  number,
+  { start: string; end: string; label?: string }
+> = {
+  1: { start: "07:30", end: "08:00" },
+  2: { start: "08:00", end: "08:30" },
+  3: { start: "08:30", end: "11:30", label: "1. økt" },
+  4: { start: "11:30", end: "12:00" },
+  5: { start: "12:00", end: "12:30" },
+  6: { start: "12:30", end: "13:00" },
+  7: { start: "13:00", end: "15:00", label: "2. økt" },
+  8: { start: "15:00", end: "16:00" },
+  9: { start: "16:00", end: "16:30" },
 };
 
-/** The school day's outer bounds, derived from the first/last period. */
-export const SCHOOL_DAY_START = PERIOD_TIMES[1].start;
-export const SCHOOL_DAY_END = PERIOD_TIMES[PERIOD_COUNT].end;
+export const PERIODS: number[] = Object.keys(PERIOD_TIMES)
+  .map(Number)
+  .sort((a, b) => a - b);
+export const PERIOD_COUNT = PERIODS.length;
+
+/** start_time ("HH:MM") -> period number, for matching imported grid rows. */
+export const PERIOD_BY_START: Record<string, number> = Object.fromEntries(
+  PERIODS.map((p) => [PERIOD_TIMES[p].start, p]),
+);
+
+/** The school day's outer bounds, derived from the first/last slot. */
+export const SCHOOL_DAY_START = PERIOD_TIMES[PERIODS[0]].start;
+export const SCHOOL_DAY_END = PERIOD_TIMES[PERIODS[PERIODS.length - 1]].end;
+
+/**
+ * Words that mark a timetable cell as a NON-teaching activity (office time,
+ * breaks, supervision, meetings, …) rather than a class needing a substitute.
+ * Matched case-insensitively as substrings. Edit freely.
+ */
+export const NON_TEACHING_KEYWORDS = [
+  "kontor",
+  "pause",
+  "lunsj",
+  "elevlunsj",
+  "tilsyn",
+  "møte",
+  "teammøte",
+  "utetid",
+  "fri",
+  "planlegging",
+  "forberedelse",
+  "ferie",
+];
+
+/**
+ * Is this timetable cell a real class (needs covering when the teacher is out)?
+ * Empty cells aren't activities at all; non-teaching items match a keyword.
+ */
+export function isClassActivity(subject: string | null | undefined): boolean {
+  const s = (subject ?? "").trim().toLowerCase();
+  if (!s) return false;
+  return !NON_TEACHING_KEYWORDS.some((k) => s.includes(k));
+}
 
 /**
  * Effective clock times for a lesson — its own start/end if set, otherwise the

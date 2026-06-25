@@ -45,7 +45,7 @@ function osloNowMinutes(): number {
 }
 
 type Activity =
-  | { state: "class"; lesson: BoardLesson }
+  | { state: "lesson"; lesson: BoardLesson }
   | { state: "borte" }
   | { state: "free" };
 
@@ -58,7 +58,7 @@ function activityNow(t: BoardTeacher, now: number): Activity {
   for (const l of t.lessons) {
     if (toMin(l.start) <= now && now < toMin(l.end)) {
       if (l.kind === "own" && l.coveredAway) continue; // they're away for this one
-      return { state: "class", lesson: l };
+      return { state: "lesson", lesson: l };
     }
   }
   return { state: "free" };
@@ -187,16 +187,19 @@ export function LiveBoard({
 
   const nowInRange = isToday && now != null && now >= startMin && now <= endMin;
 
-  // Live headline counts.
+  // Live headline counts (teachers only).
   let inClass = 0;
+  let busy = 0;
   let free = 0;
   let away = 0;
   if (now != null) {
     for (const t of board.teachers) {
-      if (t.role === "vikar") continue; // headline counts are about teachers
+      if (t.role === "vikar") continue;
       const a = activityNow(t, now);
-      if (a.state === "class") inClass += 1;
-      else if (a.state === "borte") away += 1;
+      if (a.state === "lesson") {
+        if (a.lesson.isClass) inClass += 1;
+        else busy += 1;
+      } else if (a.state === "borte") away += 1;
       else free += 1;
     }
   }
@@ -214,6 +217,7 @@ export function LiveBoard({
               <span className="text-sm text-muted">
                 <b className="text-emerald-700">{inClass}</b> i klasse ·{" "}
                 <b className="text-ink">{free}</b> ledige ·{" "}
+                <b className="text-ink">{busy}</b> opptatt ·{" "}
                 <b className="text-red-700">{away}</b> borte
               </span>
             )}
@@ -335,6 +339,14 @@ function StatusLine({ act }: { act: Activity }) {
     return <span className="text-xs font-medium text-muted">● Ledig</span>;
   }
   const l = act.lesson;
+  // Non-teaching activity (office, supervision, meeting…): show it, but neutral.
+  if (!l.isClass) {
+    return (
+      <span className="truncate text-xs font-medium text-muted" title={l.subject ?? ""}>
+        ● {l.subject || "Opptatt"}
+      </span>
+    );
+  }
   const label =
     l.kind === "covering"
       ? `Dekker ${[l.subject, l.classGroup].filter(Boolean).join(" ")}`
@@ -362,6 +374,9 @@ function LessonBlock({
     prefix = "Dekker: ";
   } else if (lesson.coveredAway) {
     cls = "bg-canvas text-muted ring-line";
+  } else if (!lesson.isClass) {
+    // Non-teaching activity (office time, breaks, supervision, meetings).
+    cls = "bg-canvas/70 text-muted ring-line";
   }
   const title = [lesson.subject, lesson.classGroup].filter(Boolean).join(" · ");
   return (
@@ -392,9 +407,9 @@ function LessonBlock({
 
 function Legend() {
   const items = [
-    { cls: "bg-brand-100 ring-brand-200", label: "Egen time" },
+    { cls: "bg-brand-100 ring-brand-200", label: "Klasse" },
     { cls: "bg-violet-100 ring-violet-200", label: "Dekker for andre" },
-    { cls: "bg-canvas ring-line", label: "Borte / dekket" },
+    { cls: "bg-canvas ring-line", label: "Annet / borte" },
   ];
   return (
     <div className="flex flex-wrap items-center gap-4 px-1 text-xs text-muted">
