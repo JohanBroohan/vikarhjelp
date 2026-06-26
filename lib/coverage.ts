@@ -204,8 +204,10 @@ export interface LessonCoverage {
   presentCoTeacherIds: string[];
   /** True when the sick teacher was the only teacher for this session. */
   isSoleTeacher: boolean;
-  /** Ranked teachers free to cover this lesson's period. */
+  /** Ranked lærere free to cover this lesson's period. */
   availableTeachers: RankedTeacher[];
+  /** Ranked fagarbeidere free this period — a fallback after vikars. */
+  availableFagarbeidere: RankedTeacher[];
   /** No internal teacher free => external vikar needed. */
   needsVikar: boolean;
 }
@@ -274,12 +276,19 @@ export function computeCoveragePlan(input: CoveragePlanInput): {
       input.allLessons,
       absentTeacherIds,
     );
-    const availableTeachers = availableTeachersForPeriod(lesson.period, ctx);
+    // Free coverers this period, split by role: lærere are the primary list,
+    // fagarbeidere a fallback. Assistent/administrasjon aren't offered.
+    const available = availableTeachersForPeriod(lesson.period, ctx);
+    const availableTeachers = available.filter((r) => r.teacher.role === "laerer");
+    const availableFagarbeidere = available.filter(
+      (r) => r.teacher.role === "fagarbeider",
+    );
     return {
       lesson,
       presentCoTeacherIds: presentIds,
       isSoleTeacher: allIds.length === 0,
       availableTeachers,
+      availableFagarbeidere,
       needsVikar: availableTeachers.length === 0,
     };
   });

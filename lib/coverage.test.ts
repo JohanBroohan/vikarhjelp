@@ -19,8 +19,8 @@ import { lessonInWindow } from "./constants";
 
 /* ---- tiny builders ------------------------------------------------------- */
 
-function teacher(id: string, name: string, is_active = true): Teacher {
-  return { id, name, phone: null, email: null, is_active, role: "laerer", created_at: "" };
+function teacher(id: string, name: string, is_active = true, role = "laerer"): Teacher {
+  return { id, name, phone: null, email: null, is_active, role, created_at: "" };
 }
 let lid = 0;
 function lesson(p: Partial<Lesson> & { teacher_id: string; weekday: number; period: number }): Lesson {
@@ -325,6 +325,24 @@ describe("computeCoveragePlan", () => {
 
     // Bjørn (Kontor) can be pulled in; Cecilie (Tilsyn) cannot.
     expect(plan.lessons[0].availableTeachers.map((r) => r.teacher.id)).toEqual(["bjorn"]);
+  });
+
+  it("lists fagarbeidere as a separate fallback, not among the lærere", () => {
+    const lae = teacher("lae", "Lærer Larsen", true, "laerer");
+    const fag = teacher("fag", "Frida Fagarbeider", true, "fagarbeider");
+    const annaClass = lesson({ id: "anna-c", teacher_id: "anna", weekday: 1, period: 1, subject: "Matematikk" });
+
+    const plan = computeCoveragePlan({
+      date: "2026-06-08", // Monday
+      absentTeacherId: "anna",
+      teachers: [anna, lae, fag],
+      allLessons: [annaClass],
+      absences: [],
+      assignments: [],
+    });
+
+    expect(plan.lessons[0].availableTeachers.map((r) => r.teacher.id)).toEqual(["lae"]);
+    expect(plan.lessons[0].availableFagarbeidere.map((r) => r.teacher.id)).toEqual(["fag"]);
   });
 
   it("returns no lessons for a weekend date", () => {

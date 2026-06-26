@@ -419,6 +419,43 @@ function LessonCard({
                 )}
               </div>
 
+              {/* Fagarbeidere — fallback after lærere and vikarer */}
+              {lc.availableFagarbeidere.length > 0 && (
+                <div>
+                  <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted">
+                    Fagarbeidere
+                  </p>
+                  <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+                    {lc.availableFagarbeidere.map((rt) => (
+                      <OptionRow
+                        key={rt.teacher.id}
+                        selected={kind === "teacher" && decision?.coveringTeacherId === rt.teacher.id}
+                        onClick={() =>
+                          onChange({
+                            kind: "teacher",
+                            coveringTeacherId: rt.teacher.id,
+                            coveringVikarId: null,
+                          })
+                        }
+                      >
+                        <div className="min-w-0">
+                          <div className="truncate font-medium text-ink">{rt.teacher.name}</div>
+                          <div className="text-xs text-muted">
+                            <PhoneLink phone={rt.teacher.phone} />
+                          </div>
+                        </div>
+                        <span
+                          className="ml-auto shrink-0 rounded-full bg-canvas px-2 py-0.5 text-xs text-muted ring-1 ring-line"
+                          title="Ekstratimer denne måneden"
+                        >
+                          {rt.monthCoverCount} i mnd.
+                        </span>
+                      </OptionRow>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Leave uncovered / reset */}
               <div className="flex flex-wrap gap-2 pt-1">
                 <MiniToggle
