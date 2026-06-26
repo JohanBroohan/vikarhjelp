@@ -170,16 +170,22 @@ export interface AvailabilityContext {
  *  - not absent that date (this also excludes the sick teacher, who is absent)
  *  - has no lesson of their own at this weekday+period
  *  - not already assigned to cover another lesson at this same period that date
+ *
+ * `ignoreOwnLessons` drops the third rule — used for fagarbeidere, who only
+ * assist a class (the teacher is still there), so they can be pulled out to
+ * cover even when they have a lesson that period.
  */
 export function availableTeachersForPeriod(
   period: number,
   ctx: AvailabilityContext,
+  options: { ignoreOwnLessons?: boolean } = {},
 ): RankedTeacher[] {
   const result: RankedTeacher[] = [];
   for (const teacher of ctx.teachers) {
     if (!teacher.is_active) continue;
     if (ctx.absentTeacherIds.has(teacher.id)) continue;
-    if (ctx.teacherOwnPeriods.get(teacher.id)?.has(period)) continue;
+    if (!options.ignoreOwnLessons && ctx.teacherOwnPeriods.get(teacher.id)?.has(period))
+      continue;
     if (ctx.teacherCoveringPeriods.get(teacher.id)?.has(period)) continue;
     result.push({
       teacher,
@@ -276,13 +282,15 @@ export function computeCoveragePlan(input: CoveragePlanInput): {
       input.allLessons,
       absentTeacherIds,
     );
-    // Free coverers this period, split by role: lærere are the primary list,
-    // fagarbeidere a fallback. Assistent/administrasjon aren't offered.
-    const available = availableTeachersForPeriod(lesson.period, ctx);
-    const availableTeachers = available.filter((r) => r.teacher.role === "laerer");
-    const availableFagarbeidere = available.filter(
-      (r) => r.teacher.role === "fagarbeider",
+    // Lærere: must be genuinely free this period.
+    const availableTeachers = availableTeachersForPeriod(lesson.period, ctx).filter(
+      (r) => r.teacher.role === "laerer",
     );
+    // Fagarbeidere: offered even if they're assisting a class this period (the
+    // teacher is still there) — only blocked if absent or already covering.
+    const availableFagarbeidere = availableTeachersForPeriod(lesson.period, ctx, {
+      ignoreOwnLessons: true,
+    }).filter((r) => r.teacher.role === "fagarbeider");
     return {
       lesson,
       presentCoTeacherIds: presentIds,

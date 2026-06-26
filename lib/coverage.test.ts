@@ -327,21 +327,27 @@ describe("computeCoveragePlan", () => {
     expect(plan.lessons[0].availableTeachers.map((r) => r.teacher.id)).toEqual(["bjorn"]);
   });
 
-  it("lists fagarbeidere as a separate fallback, not among the lærere", () => {
+  it("lists fagarbeidere separately, and offers them even while assisting a class", () => {
     const lae = teacher("lae", "Lærer Larsen", true, "laerer");
+    const laeBusy = teacher("laeb", "Lærer Busy", true, "laerer");
     const fag = teacher("fag", "Frida Fagarbeider", true, "fagarbeider");
     const annaClass = lesson({ id: "anna-c", teacher_id: "anna", weekday: 1, period: 1, subject: "Matematikk" });
+    // Both the busy lærer and the fagarbeider are in a class at period 1.
+    const laeBusyClass = lesson({ id: "lb-c", teacher_id: "laeb", weekday: 1, period: 1, subject: "Norsk", class_group: "9B" });
+    const fagAssist = lesson({ id: "fag-c", teacher_id: "fag", weekday: 1, period: 1, subject: "Naturfag", class_group: "10A" });
 
     const plan = computeCoveragePlan({
       date: "2026-06-08", // Monday
       absentTeacherId: "anna",
-      teachers: [anna, lae, fag],
-      allLessons: [annaClass],
+      teachers: [anna, lae, laeBusy, fag],
+      allLessons: [annaClass, laeBusyClass, fagAssist],
       absences: [],
       assignments: [],
     });
 
+    // The free lærer is offered; the busy lærer is not.
     expect(plan.lessons[0].availableTeachers.map((r) => r.teacher.id)).toEqual(["lae"]);
+    // The fagarbeider is offered despite assisting a class at this period.
     expect(plan.lessons[0].availableFagarbeidere.map((r) => r.teacher.id)).toEqual(["fag"]);
   });
 
