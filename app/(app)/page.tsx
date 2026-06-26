@@ -48,9 +48,21 @@ export default async function OversiktPage({
                       </span>
                       <Link
                         href={`/fravaer?date=${board.date}&teacher=${s.id}`}
-                        className="text-xs font-medium text-brand-700 hover:underline"
+                        aria-label={`Endre fravær for ${s.name}`}
+                        title="Endre fravær"
+                        className="rounded-md p-1 text-muted transition hover:bg-canvas hover:text-brand-700"
                       >
-                        Endre
+                        <svg
+                          className="h-4 w-4"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth={1.8}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4 12.5-12.5z" />
+                        </svg>
                       </Link>
                     </div>
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 pl-3.5 text-xs">
