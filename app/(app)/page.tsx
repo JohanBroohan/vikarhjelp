@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getTodayBoard } from "@/lib/queries/board";
 import { todayISO } from "@/lib/format";
 import { Page, Card } from "@/components/ui";
@@ -30,23 +31,41 @@ export default async function OversiktPage({
 
         <div className="space-y-4 xl:mt-12">
           <Card className="p-4">
-            <h2 className="mb-4 text-base font-semibold text-ink">Syke i dag</h2>
+            <h2 className="mb-4 text-base font-semibold text-ink">Fravær i dag</h2>
             {board.sick.length === 0 ? (
               <p className="text-sm text-muted">Ingen fravær registrert i dag.</p>
             ) : (
-              <ul className="space-y-1.5">
+              <ul className="space-y-2.5">
                 {board.sick.map((s) => (
                   <li
                     key={s.id}
-                    className="flex items-center justify-between gap-2 border-b border-line/60 pb-1.5 text-sm last:border-0 last:pb-0"
+                    className="space-y-1 border-b border-line/60 pb-2.5 last:border-0 last:pb-0"
                   >
-                    <span className="flex items-center gap-2 font-medium text-ink">
-                      <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
-                      {s.name}
-                    </span>
-                    <span className="tabular text-xs text-red-600">
-                      {s.window ? `${s.window.from}–${s.window.to}` : "Hele dagen"}
-                    </span>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="flex items-center gap-2 text-sm font-medium text-ink">
+                        <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+                        {s.name}
+                      </span>
+                      <Link
+                        href={`/fravaer?date=${board.date}&teacher=${s.id}`}
+                        className="text-xs font-medium text-brand-700 hover:underline"
+                      >
+                        Endre
+                      </Link>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 pl-3.5 text-xs">
+                      <span className="tabular text-muted">
+                        {s.window ? `${s.window.from}–${s.window.to}` : "Hele dagen"}
+                      </span>
+                      <span className="text-emerald-700">{s.covered} dekket</span>
+                      <span
+                        className={
+                          s.uncovered > 0 ? "font-medium text-red-700" : "text-muted"
+                        }
+                      >
+                        {s.uncovered} udekket
+                      </span>
+                    </div>
                   </li>
                 ))}
               </ul>

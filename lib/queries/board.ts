@@ -72,7 +72,13 @@ export interface TodayBoard {
   dayStart: string;
   dayEnd: string;
   teachers: BoardTeacher[];
-  sick: { id: string; name: string; window: { from: string; to: string } | null }[];
+  sick: {
+    id: string;
+    name: string;
+    window: { from: string; to: string } | null;
+    covered: number;
+    uncovered: number;
+  }[];
   vikars: BoardVikar[];
   summary: { total: number; covered: number; pending: number; uncovered: number };
 }
@@ -238,14 +244,28 @@ export async function getTodayBoard(date: string): Promise<TodayBoard> {
     (a, b) => rowRank(a) - rowRank(b) || a.name.localeCompare(b.name, "nb"),
   );
 
-  // Sick today (with optional window).
+  // Covered / not-covered session counts per absent teacher (for "Fravær i dag").
+  const coverStats = new Map<string, { covered: number; uncovered: number }>();
+  for (const a of assignments) {
+    const s = coverStats.get(a.absent_teacher_id) ?? { covered: 0, uncovered: 0 };
+    if (COVERED.includes(a.status)) s.covered += 1;
+    else s.uncovered += 1; // pending + uncovered both still need attention
+    coverStats.set(a.absent_teacher_id, s);
+  }
+
+  // Sick today (with optional window + coverage counts).
   const sick = absences
-    .map((a) => ({
-      id: a.teacher_id,
-      name: teacherName.get(a.teacher_id) ?? "Ukjent",
-      window:
-        a.start_time && a.end_time ? { from: a.start_time, to: a.end_time } : null,
-    }))
+    .map((a) => {
+      const stats = coverStats.get(a.teacher_id) ?? { covered: 0, uncovered: 0 };
+      return {
+        id: a.teacher_id,
+        name: teacherName.get(a.teacher_id) ?? "Ukjent",
+        window:
+          a.start_time && a.end_time ? { from: a.start_time, to: a.end_time } : null,
+        covered: stats.covered,
+        uncovered: stats.uncovered,
+      };
+    })
     .sort((a, b) => a.name.localeCompare(b.name, "nb"));
 
   // Vikars at school today = those assigned to cover at least one lesson today.
