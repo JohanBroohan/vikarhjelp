@@ -29,7 +29,10 @@ export default async function OversiktPage({
           <LiveBoard board={board} isToday={isToday} />
         </div>
 
-        <div className="space-y-4 xl:mt-12">
+        {/* On today the timeline shows a live-clock headline above its card;
+            offset the right column to align with the card. On other days there
+            is no headline, so no offset. */}
+        <div className={`space-y-4 ${isToday ? "xl:mt-12" : ""}`}>
           <Card className="p-4">
             <h2 className="mb-4 text-base font-semibold text-ink">Fravær i dag</h2>
             {board.sick.length === 0 ? (
