@@ -42,7 +42,7 @@ export default async function OversiktPage({
                 {board.sick.map((s) => (
                   <li
                     key={s.id}
-                    className="space-y-1.5 border-b border-line/60 pb-2.5 last:border-0 last:pb-0"
+                    className="space-y-[3px] border-b border-line/60 pb-2.5 last:border-0 last:pb-0"
                   >
                     <div className="flex items-center justify-between gap-2">
                       <span className="flex items-center gap-2 text-sm font-medium text-ink">
