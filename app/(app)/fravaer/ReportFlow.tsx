@@ -60,6 +60,9 @@ export function ReportFlow({
   // Absence type — defaults to Egenmelding (the ~95% case).
   const [absenceType, setAbsenceType] = useState(DEFAULT_ABSENCE_TYPE);
 
+  // "Hele dagen" (single whole day) vs "Bestemt tidsrom" (from/to date + time).
+  const [rangeMode, setRangeMode] = useState(false);
+
   const invalidRange = toDate < fromDate;
   const isMultiDay = toDate > fromDate;
 
@@ -93,6 +96,7 @@ export function ReportFlow({
         const w = res.data!.absenceWindow;
         setFromTime(w?.from ?? "");
         setToTime(w?.to ?? "");
+        setRangeMode(Boolean(w)); // a saved time window => "Bestemt tidsrom"
       }
     });
   }, [teacherId, fromDate, isMultiDay]);
@@ -100,6 +104,21 @@ export function ReportFlow({
   const visibleLessons = (data?.lessons ?? []).filter((lc) =>
     lessonInWindow(lc.lesson, window),
   );
+
+  function setMode(range: boolean) {
+    setRangeMode(range);
+    if (!range) {
+      // "Hele dagen": collapse to a single whole day.
+      setToDate(fromDate);
+      setFromTime("");
+      setToTime("");
+    }
+  }
+
+  function pickWholeDayDate(d: string) {
+    setFromDate(d);
+    setToDate(d);
+  }
 
   function pickFromDate(d: string) {
     setFromDate(d);
@@ -188,43 +207,74 @@ export function ReportFlow({
           </Field>
         </div>
 
-        {/* From / to date + time */}
+        {/* Whole day vs. a specific date/time range */}
         <div className="mt-4 border-t border-line pt-4">
           <p className="mb-2 text-sm font-medium text-ink">Fraværet gjelder</p>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:max-w-2xl">
-            <div className="space-y-1.5">
-              <span className="block text-sm text-muted">Fra</span>
-              <div className="flex gap-2">
-                <div className="flex-1">
-                  <DateField value={fromDate} onChange={pickFromDate} />
-                </div>
-                <input
-                  type="time"
-                  value={fromTime}
-                  onChange={(e) => setFromTime(e.target.value)}
-                  className="w-28 rounded-lg border border-line bg-surface px-2.5 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
-                />
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <span className="block text-sm text-muted">Til</span>
-              <div className="flex gap-2">
-                <div className="flex-1">
-                  <DateField value={toDate} onChange={setToDate} />
-                </div>
-                <input
-                  type="time"
-                  value={toTime}
-                  onChange={(e) => setToTime(e.target.value)}
-                  className="w-28 rounded-lg border border-line bg-surface px-2.5 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
-                />
-              </div>
-            </div>
+
+          <div className="inline-flex rounded-lg bg-canvas p-0.5 ring-1 ring-line">
+            <button
+              type="button"
+              onClick={() => setMode(false)}
+              className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
+                !rangeMode ? "bg-surface text-ink shadow-sm" : "text-muted hover:text-ink"
+              }`}
+            >
+              Hele dagen
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode(true)}
+              className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
+                rangeMode ? "bg-surface text-ink shadow-sm" : "text-muted hover:text-ink"
+              }`}
+            >
+              Bestemt tidsrom
+            </button>
           </div>
-          <p className="mt-2 text-xs text-muted">
-            La klokkeslett stå tomt for hele dagen. Velg en senere til-dato for
-            fravær over flere dager.
-          </p>
+
+          {!rangeMode ? (
+            <div className="mt-3 sm:max-w-xs">
+              <span className="mb-1.5 block text-sm text-muted">Dato</span>
+              <DateField value={fromDate} onChange={pickWholeDayDate} />
+            </div>
+          ) : (
+            <>
+              <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:max-w-2xl">
+                <div className="space-y-1.5">
+                  <span className="block text-sm text-muted">Fra</span>
+                  <div className="flex gap-2">
+                    <div className="flex-1">
+                      <DateField value={fromDate} onChange={pickFromDate} />
+                    </div>
+                    <input
+                      type="time"
+                      value={fromTime}
+                      onChange={(e) => setFromTime(e.target.value)}
+                      className="w-28 rounded-lg border border-line bg-surface px-2.5 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <span className="block text-sm text-muted">Til</span>
+                  <div className="flex gap-2">
+                    <div className="flex-1">
+                      <DateField value={toDate} onChange={setToDate} />
+                    </div>
+                    <input
+                      type="time"
+                      value={toTime}
+                      onChange={(e) => setToTime(e.target.value)}
+                      className="w-28 rounded-lg border border-line bg-surface px-2.5 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+                    />
+                  </div>
+                </div>
+              </div>
+              <p className="mt-2 text-xs text-muted">
+                La klokkeslett stå tomt for hele dagen. Velg en senere til-dato for
+                fravær over flere dager.
+              </p>
+            </>
+          )}
         </div>
       </Card>
 
