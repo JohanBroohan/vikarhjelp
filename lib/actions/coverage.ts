@@ -18,6 +18,10 @@ import type {
 import {
   ABSENCE_TYPES,
   DEFAULT_ABSENCE_TYPE,
+  SCHOOL_DAY_START,
+  SCHOOL_DAY_END,
+  isClassActivity,
+  lessonInWindow,
   type CoverageStatus,
 } from "@/lib/constants";
 import type { ActionResult } from "./_common";
@@ -314,6 +318,117 @@ export async function deleteAbsence(
   revalidatePath("/fravaer");
   revalidatePath("/ekstratimer");
   return { ok: true };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Multi-day absence registration                                            */
+/* -------------------------------------------------------------------------- */
+
+export interface MultiDayAbsenceInput {
+  teacherId: string;
+  absenceType?: string;
+  fromDate: string;
+  fromTime?: string | null;
+  toDate: string;
+  toTime?: string | null;
+}
+
+/**
+ * Register an absence spanning several days. Creates one absence row per
+ * weekday in the range (first day from `fromTime`, last day to `toTime`, middle
+ * days whole) and a `pending` coverage assignment for each class lesson so the
+ * day shows as "udekket" until the principal assigns covers day-by-day.
+ * Existing (already-assigned) covers are left untouched.
+ */
+export async function registerMultiDayAbsence(
+  input: MultiDayAbsenceInput,
+): Promise<ActionResult<{ days: number; lessons: number }>> {
+  await requireUser();
+  if (input.toDate < input.fromDate) {
+    return { ok: false, error: "Til-dato må være lik eller etter fra-dato." };
+  }
+  const supabase = await createClient();
+
+  const absenceType = ABSENCE_TYPES.some((t) => t.value === input.absenceType)
+    ? input.absenceType!
+    : DEFAULT_ABSENCE_TYPE;
+
+  const { data: lessonsData } = await supabase
+    .from("lessons")
+    .select("*")
+    .eq("teacher_id", input.teacherId);
+  const teacherLessons = (lessonsData ?? []) as Lesson[];
+
+  let days = 0;
+  let lessons = 0;
+
+  for (let d = input.fromDate; d <= input.toDate; d = addWeekDays(d, 1)) {
+    const weekday = weekdayFromISODate(d);
+    if (weekday == null) continue; // skip weekends
+
+    const start = d === input.fromDate && input.fromTime ? input.fromTime : SCHOOL_DAY_START;
+    const end = d === input.toDate && input.toTime ? input.toTime : SCHOOL_DAY_END;
+    const isWhole = start <= SCHOOL_DAY_START && end >= SCHOOL_DAY_END;
+    const window = isWhole ? null : { from: start, to: end };
+
+    const { error: absErr } = await supabase.from("absences").upsert(
+      {
+        teacher_id: input.teacherId,
+        date: d,
+        absence_type: absenceType,
+        start_time: window?.from ?? null,
+        end_time: window?.to ?? null,
+      },
+      { onConflict: "teacher_id,date" },
+    );
+    if (absErr) return { ok: false, error: absErr.message };
+    days += 1;
+
+    // The teacher's class lessons that day, within the window.
+    const dayLessons = teacherLessons.filter(
+      (l) =>
+        l.weekday === weekday &&
+        isClassActivity(l.subject) &&
+        lessonInWindow(l, window),
+    );
+    const dayLessonIds = new Set(dayLessons.map((l) => l.id));
+
+    const { data: existing } = await supabase
+      .from("coverage_assignments")
+      .select("id, lesson_id")
+      .eq("date", d)
+      .eq("absent_teacher_id", input.teacherId);
+    const existingByLesson = new Map((existing ?? []).map((r) => [r.lesson_id, r.id]));
+
+    // Drop any assignments now out of the window.
+    const toDelete = (existing ?? [])
+      .filter((r) => !dayLessonIds.has(r.lesson_id))
+      .map((r) => r.id);
+    if (toDelete.length > 0) {
+      await supabase.from("coverage_assignments").delete().in("id", toDelete);
+    }
+
+    // Add a pending assignment for each not-yet-tracked class lesson.
+    for (const l of dayLessons) {
+      if (existingByLesson.has(l.id)) continue; // keep existing cover as-is
+      const { error } = await supabase.from("coverage_assignments").insert({
+        date: d,
+        lesson_id: l.id,
+        absent_teacher_id: input.teacherId,
+        covering_teacher_id: null,
+        covering_vikar_id: null,
+        status: "pending",
+        notes: null,
+      });
+      if (error) return { ok: false, error: error.message };
+      lessons += 1;
+    }
+  }
+
+  revalidatePath("/");
+  revalidatePath("/fravaer");
+  revalidatePath("/ekstratimer");
+  return { ok: true, data: { days, lessons } };
 }
 
 /* -------------------------------------------------------------------------- */

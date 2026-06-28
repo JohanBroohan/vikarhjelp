@@ -13,7 +13,8 @@ import {
   ABSENCE_TYPES,
   DEFAULT_ABSENCE_TYPE,
 } from "@/lib/constants";
-import { pluralTeachers } from "@/lib/format";
+import { pluralTeachers, formatDateLong, capitalize, addDaysISO } from "@/lib/format";
+import { weekdayFromISODate } from "@/lib/coverage";
 import { Button, Card, Field, Select } from "@/components/ui";
 import { DateField } from "@/components/DateField";
 import { PhoneLink } from "@/components/PhoneLink";
@@ -21,9 +22,19 @@ import {
   loadReportData,
   saveCoverage,
   deleteAbsence,
+  registerMultiDayAbsence,
   type LessonDecision,
   type ReportData,
 } from "@/lib/actions/coverage";
+
+function countSchoolDays(from: string, to: string): number {
+  if (to < from) return 0;
+  let n = 0;
+  for (let d = from; d <= to; d = addDaysISO(d, 1)) {
+    if (weekdayFromISODate(d) != null) n += 1;
+  }
+  return n;
+}
 
 export function ReportFlow({
   teachers,
@@ -36,7 +47,10 @@ export function ReportFlow({
 }) {
   const router = useRouter();
   const [teacherId, setTeacherId] = useState(initialTeacherId);
-  const [date, setDate] = useState(initialDate);
+  const [fromDate, setFromDate] = useState(initialDate);
+  const [toDate, setToDate] = useState(initialDate);
+  const [fromTime, setFromTime] = useState(""); // "" = whole-day start
+  const [toTime, setToTime] = useState(""); // "" = whole-day end
   const [data, setData] = useState<ReportData | null>(null);
   const [decisions, setDecisions] = useState<Record<string, LessonDecision>>({});
   const [error, setError] = useState<string | null>(null);
@@ -46,20 +60,24 @@ export function ReportFlow({
   // Absence type — defaults to Egenmelding (the ~95% case).
   const [absenceType, setAbsenceType] = useState(DEFAULT_ABSENCE_TYPE);
 
-  // Absence time window: whole day, or a specific range like 11:00–12:30.
-  const [wholeDay, setWholeDay] = useState(true);
-  const [winFrom, setWinFrom] = useState(SCHOOL_DAY_START);
-  const [winTo, setWinTo] = useState(SCHOOL_DAY_END);
+  const invalidRange = toDate < fromDate;
+  const isMultiDay = toDate > fromDate;
 
-  // (Re)load the plan whenever teacher or date changes. All state updates run
-  // inside the transition callback (never synchronously in the effect body).
+  // For a single day, the time window (null = whole day).
+  const window =
+    fromTime || toTime
+      ? { from: fromTime || SCHOOL_DAY_START, to: toTime || SCHOOL_DAY_END }
+      : null;
+
+  // (Re)load the single-day plan. Skipped for multi-day (covers are assigned
+  // per day later from Oversikt).
   useEffect(() => {
     startLoad(async () => {
-      if (!teacherId || !date) {
+      if (!teacherId || !fromDate || isMultiDay) {
         setData(null);
         return;
       }
-      const res = await loadReportData(date, teacherId);
+      const res = await loadReportData(fromDate, teacherId);
       if (!res.ok) {
         setError(res.error);
         setData(null);
@@ -68,19 +86,25 @@ export function ReportFlow({
       setError(null);
       setData(res.data!);
       setDecisions(buildInitialDecisions(res.data!));
-      // Prefill the window + type from a previously-saved absence.
-      const w = res.data!.absenceWindow;
-      setWholeDay(!w);
-      setWinFrom(w?.from ?? SCHOOL_DAY_START);
-      setWinTo(w?.to ?? SCHOOL_DAY_END);
-      setAbsenceType(res.data!.absenceType ?? DEFAULT_ABSENCE_TYPE);
+      // Prefill type + times only when editing an existing absence, so we don't
+      // clobber what the user is typing for a new one.
+      if (Object.keys(res.data!.existing).length > 0) {
+        setAbsenceType(res.data!.absenceType ?? DEFAULT_ABSENCE_TYPE);
+        const w = res.data!.absenceWindow;
+        setFromTime(w?.from ?? "");
+        setToTime(w?.to ?? "");
+      }
     });
-  }, [teacherId, date]);
+  }, [teacherId, fromDate, isMultiDay]);
 
-  const window = wholeDay ? null : { from: winFrom, to: winTo };
   const visibleLessons = (data?.lessons ?? []).filter((lc) =>
     lessonInWindow(lc.lesson, window),
   );
+
+  function pickFromDate(d: string) {
+    setFromDate(d);
+    if (toDate < d) setToDate(d); // keep the range valid
+  }
 
   function setDecision(lessonId: string, patch: Partial<LessonDecision>) {
     setDecisions((prev) => ({
@@ -94,17 +118,31 @@ export function ReportFlow({
     setError(null);
     startSave(async () => {
       const res = await saveCoverage({
-        date,
+        date: fromDate,
         absentTeacherId: teacherId,
         absenceType,
         window,
         decisions: visibleLessons.map((l) => decisions[l.lesson.id]).filter(Boolean),
       });
-      if (!res.ok) {
-        setError(res.error);
-        return;
-      }
-      // Send the user to the "I dag" overview to see the result.
+      if (!res.ok) return setError(res.error);
+      router.push("/");
+      router.refresh();
+    });
+  }
+
+  function registerRange() {
+    if (!teacherId) return;
+    setError(null);
+    startSave(async () => {
+      const res = await registerMultiDayAbsence({
+        teacherId,
+        absenceType,
+        fromDate,
+        fromTime: fromTime || null,
+        toDate,
+        toTime: toTime || null,
+      });
+      if (!res.ok) return setError(res.error);
       router.push("/");
       router.refresh();
     });
@@ -113,7 +151,7 @@ export function ReportFlow({
   function removeAbsence() {
     if (!confirm("Fjerne dette fraværet og alle dekninger for dagen?")) return;
     startSave(async () => {
-      const res = await deleteAbsence(teacherId, date);
+      const res = await deleteAbsence(teacherId, fromDate);
       if (!res.ok) return setError(res.error);
       router.push("/");
     });
@@ -121,14 +159,14 @@ export function ReportFlow({
 
   const selectedTeacher = teachers.find((t) => t.id === teacherId) ?? null;
   const hasExisting = data && Object.keys(data.existing).length > 0;
-
   const counts = summarize(visibleLessons, decisions);
+  const schoolDays = countSchoolDays(fromDate, toDate);
 
   return (
     <div className="space-y-5">
       {/* Controls */}
       <Card className="p-5">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:max-w-3xl lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:max-w-xl">
           <Field label="Lærer som er borte">
             <Select value={teacherId} onChange={(e) => setTeacherId(e.target.value)}>
               <option value="">Velg lærer …</option>
@@ -139,14 +177,8 @@ export function ReportFlow({
               ))}
             </Select>
           </Field>
-          <Field label="Dato">
-            <DateField value={date} onChange={setDate} />
-          </Field>
           <Field label="Fraværstype">
-            <Select
-              value={absenceType}
-              onChange={(e) => setAbsenceType(e.target.value)}
-            >
+            <Select value={absenceType} onChange={(e) => setAbsenceType(e.target.value)}>
               {ABSENCE_TYPES.map((t) => (
                 <option key={t.value} value={t.value}>
                   {t.label}
@@ -156,54 +188,43 @@ export function ReportFlow({
           </Field>
         </div>
 
-        {/* Whole day vs. a specific time window */}
+        {/* From / to date + time */}
         <div className="mt-4 border-t border-line pt-4">
           <p className="mb-2 text-sm font-medium text-ink">Fraværet gjelder</p>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="inline-flex rounded-lg bg-canvas p-0.5 ring-1 ring-line">
-              <button
-                type="button"
-                onClick={() => setWholeDay(true)}
-                className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
-                  wholeDay ? "bg-surface text-ink shadow-sm" : "text-muted hover:text-ink"
-                }`}
-              >
-                Hele dagen
-              </button>
-              <button
-                type="button"
-                onClick={() => setWholeDay(false)}
-                className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
-                  !wholeDay ? "bg-surface text-ink shadow-sm" : "text-muted hover:text-ink"
-                }`}
-              >
-                Bestemt tidsrom
-              </button>
-            </div>
-
-            {!wholeDay && (
-              <div className="flex items-center gap-2 text-sm">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:max-w-2xl">
+            <div className="space-y-1.5">
+              <span className="block text-sm text-muted">Fra</span>
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <DateField value={fromDate} onChange={pickFromDate} />
+                </div>
                 <input
                   type="time"
-                  value={winFrom}
-                  onChange={(e) => setWinFrom(e.target.value)}
-                  className="rounded-lg border border-line bg-surface px-2.5 py-1.5 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
-                />
-                <span className="text-muted">til</span>
-                <input
-                  type="time"
-                  value={winTo}
-                  onChange={(e) => setWinTo(e.target.value)}
-                  className="rounded-lg border border-line bg-surface px-2.5 py-1.5 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+                  value={fromTime}
+                  onChange={(e) => setFromTime(e.target.value)}
+                  className="w-28 rounded-lg border border-line bg-surface px-2.5 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
                 />
               </div>
-            )}
+            </div>
+            <div className="space-y-1.5">
+              <span className="block text-sm text-muted">Til</span>
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <DateField value={toDate} onChange={setToDate} />
+                </div>
+                <input
+                  type="time"
+                  value={toTime}
+                  onChange={(e) => setToTime(e.target.value)}
+                  className="w-28 rounded-lg border border-line bg-surface px-2.5 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+                />
+              </div>
+            </div>
           </div>
-          {!wholeDay && (
-            <p className="mt-2 text-xs text-muted">
-              Bare timer som overlapper med {winFrom}–{winTo} trenger dekning.
-            </p>
-          )}
+          <p className="mt-2 text-xs text-muted">
+            La klokkeslett stå tomt for hele dagen. Velg en senere til-dato for
+            fravær over flere dager.
+          </p>
         </div>
       </Card>
 
@@ -213,73 +234,115 @@ export function ReportFlow({
         </p>
       )}
 
-      {loading && <p className="text-sm text-muted">Beregner dekning …</p>}
-
-      {/* Weekend / no lessons */}
-      {data && data.weekday == null && (
-        <Card className="p-6 text-sm text-muted">
-          Valgt dato er i helgen — det er ingen timer å dekke.
-        </Card>
-      )}
-      {data && data.weekday != null && data.lessons.length === 0 && selectedTeacher && (
-        <Card className="p-6 text-sm text-muted">
-          {selectedTeacher.name} har ingen timer på {WEEKDAY_NAMES[data.weekday].toLowerCase()}.
-        </Card>
-      )}
-      {data && data.weekday != null && data.lessons.length > 0 && visibleLessons.length === 0 && (
-        <Card className="p-6 text-sm text-muted">
-          Ingen timer overlapper med tidsrommet {winFrom}–{winTo}. Juster tidsrommet
-          eller velg «Hele dagen».
+      {invalidRange && (
+        <Card className="p-6 text-sm text-red-700">
+          Til-dato må være lik eller etter fra-dato.
         </Card>
       )}
 
-      {/* Lessons */}
-      {data && visibleLessons.length > 0 && (
+      {/* Multi-day: register the range, assign covers per day later */}
+      {!invalidRange && isMultiDay && selectedTeacher && (
         <>
-          {hasExisting && (
-            <p className="rounded-lg bg-brand-50 px-4 py-2.5 text-sm text-brand-800 ring-1 ring-brand-600/15">
-              Dette fraværet er allerede registrert. Du redigerer en eksisterende dag.
+          <Card className="p-5">
+            <p className="font-medium text-ink">Fravær for {selectedTeacher.name}</p>
+            <p className="mt-1 text-sm text-muted">
+              Fra {capitalize(formatDateLong(fromDate))}
+              {fromTime ? ` kl. ${fromTime}` : ""} til {capitalize(formatDateLong(toDate))}
+              {toTime ? ` kl. ${toTime}` : ""}.
             </p>
-          )}
+            <p className="mt-1 text-sm text-muted">
+              {schoolDays} skoledager i perioden (helger hoppes over).
+            </p>
+            <p className="mt-3 rounded-lg bg-brand-50 px-3 py-2 text-xs text-brand-800 ring-1 ring-brand-600/15">
+              Fraværet registreres for alle dagene. Timene som trenger dekning blir
+              stående som «udekket» — tildel vikar eller lærer for hver dag fra
+              Oversikt («Fravær i dag»).
+            </p>
+          </Card>
 
-          <div className="space-y-4">
-            {visibleLessons.map((lc) => (
-              <LessonCard
-                key={lc.lesson.id}
-                lc={lc}
-                data={data}
-                decision={decisions[lc.lesson.id]}
-                onChange={(patch) => setDecision(lc.lesson.id, patch)}
-              />
-            ))}
-          </div>
-
-          {/* Sticky save bar */}
           <div className="sticky bottom-0 z-10 -mx-1 mt-2 rounded-xl border border-line bg-surface/95 px-4 py-3 shadow-lg backdrop-blur">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-                <span className="text-muted">
-                  {counts.total} timer ·{" "}
-                  <span className="font-medium text-emerald-700">{counts.covered} dekket</span> ·{" "}
-                  <span className="font-medium text-amber-700">{counts.pending} venter</span> ·{" "}
-                  <span className="font-medium text-red-700">{counts.uncovered} udekket</span>
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                {hasExisting && (
-                  <Button variant="danger" onClick={removeAbsence} disabled={saving}>
-                    Slett fravær
-                  </Button>
-                )}
-                <Button variant="secondary" onClick={() => router.push("/")}>
-                  Til oversikt
-                </Button>
-                <Button onClick={save} disabled={saving}>
-                  {saving ? "Lagrer …" : "Lagre dekning"}
-                </Button>
-              </div>
+            <div className="flex items-center justify-end gap-2">
+              <Button variant="secondary" onClick={() => router.push("/")}>
+                Avbryt
+              </Button>
+              <Button onClick={registerRange} disabled={saving || schoolDays === 0}>
+                {saving ? "Registrerer …" : `Registrer fravær (${schoolDays} dager)`}
+              </Button>
             </div>
           </div>
+        </>
+      )}
+
+      {/* Single day: assign covers inline */}
+      {!invalidRange && !isMultiDay && (
+        <>
+          {loading && <p className="text-sm text-muted">Beregner dekning …</p>}
+
+          {data && data.weekday == null && (
+            <Card className="p-6 text-sm text-muted">
+              Valgt dato er i helgen — det er ingen timer å dekke.
+            </Card>
+          )}
+          {data && data.weekday != null && data.lessons.length === 0 && selectedTeacher && (
+            <Card className="p-6 text-sm text-muted">
+              {selectedTeacher.name} har ingen timer på {WEEKDAY_NAMES[data.weekday].toLowerCase()}.
+            </Card>
+          )}
+          {data && data.weekday != null && data.lessons.length > 0 && visibleLessons.length === 0 && window && (
+            <Card className="p-6 text-sm text-muted">
+              Ingen timer overlapper med tidsrommet {window.from}–{window.to}. Juster
+              tidene eller la dem stå tomme.
+            </Card>
+          )}
+
+          {data && visibleLessons.length > 0 && (
+            <>
+              {hasExisting && (
+                <p className="rounded-lg bg-brand-50 px-4 py-2.5 text-sm text-brand-800 ring-1 ring-brand-600/15">
+                  Dette fraværet er allerede registrert. Du redigerer en eksisterende dag.
+                </p>
+              )}
+
+              <div className="space-y-4">
+                {visibleLessons.map((lc) => (
+                  <LessonCard
+                    key={lc.lesson.id}
+                    lc={lc}
+                    data={data}
+                    decision={decisions[lc.lesson.id]}
+                    onChange={(patch) => setDecision(lc.lesson.id, patch)}
+                  />
+                ))}
+              </div>
+
+              {/* Sticky save bar */}
+              <div className="sticky bottom-0 z-10 -mx-1 mt-2 rounded-xl border border-line bg-surface/95 px-4 py-3 shadow-lg backdrop-blur">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+                    <span className="text-muted">
+                      {counts.total} timer ·{" "}
+                      <span className="font-medium text-emerald-700">{counts.covered} dekket</span> ·{" "}
+                      <span className="font-medium text-amber-700">{counts.pending} venter</span> ·{" "}
+                      <span className="font-medium text-red-700">{counts.uncovered} udekket</span>
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {hasExisting && (
+                      <Button variant="danger" onClick={removeAbsence} disabled={saving}>
+                        Slett fravær
+                      </Button>
+                    )}
+                    <Button variant="secondary" onClick={() => router.push("/")}>
+                      Til oversikt
+                    </Button>
+                    <Button onClick={save} disabled={saving}>
+                      {saving ? "Lagrer …" : "Lagre dekning"}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
         </>
       )}
     </div>
