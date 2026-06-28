@@ -27,6 +27,41 @@ import {
   type ReportData,
 } from "@/lib/actions/coverage";
 
+// 24-hour time options (every 15 min, 06:00–18:00). Used instead of the native
+// <input type="time">, whose 12h/24h display follows the browser locale.
+const TIME_OPTIONS: string[] = (() => {
+  const out: string[] = [];
+  for (let m = 6 * 60; m <= 18 * 60; m += 15) {
+    out.push(`${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`);
+  }
+  return out;
+})();
+
+function TimeSelect({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const options =
+    value && !TIME_OPTIONS.includes(value) ? [value, ...TIME_OPTIONS] : TIME_OPTIONS;
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="tabular w-24 rounded-lg border border-line bg-surface px-2 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+    >
+      <option value="">—</option>
+      {options.map((o) => (
+        <option key={o} value={o}>
+          {o}
+        </option>
+      ))}
+    </select>
+  );
+}
+
 function countSchoolDays(from: string, to: string): number {
   if (to < from) return 0;
   let n = 0;
@@ -49,8 +84,8 @@ export function ReportFlow({
   const [teacherId, setTeacherId] = useState(initialTeacherId);
   const [fromDate, setFromDate] = useState(initialDate);
   const [toDate, setToDate] = useState(initialDate);
-  const [fromTime, setFromTime] = useState(""); // "" = whole-day start
-  const [toTime, setToTime] = useState(""); // "" = whole-day end
+  const [fromTime, setFromTime] = useState("08:00"); // "" = whole-day start
+  const [toTime, setToTime] = useState("16:00"); // "" = whole-day end
   const [data, setData] = useState<ReportData | null>(null);
   const [decisions, setDecisions] = useState<Record<string, LessonDecision>>({});
   const [error, setError] = useState<string | null>(null);
@@ -107,7 +142,11 @@ export function ReportFlow({
 
   function setMode(range: boolean) {
     setRangeMode(range);
-    if (!range) {
+    if (range) {
+      // "Bestemt tidsrom": default to a normal working day if not set.
+      if (!fromTime) setFromTime("08:00");
+      if (!toTime) setToTime("16:00");
+    } else {
       // "Hele dagen": collapse to a single whole day.
       setToDate(fromDate);
       setFromTime("");
@@ -246,12 +285,7 @@ export function ReportFlow({
                     <div className="flex-1">
                       <DateField value={fromDate} onChange={pickFromDate} />
                     </div>
-                    <input
-                      type="time"
-                      value={fromTime}
-                      onChange={(e) => setFromTime(e.target.value)}
-                      className="w-28 rounded-lg border border-line bg-surface px-2.5 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
-                    />
+                    <TimeSelect value={fromTime} onChange={setFromTime} />
                   </div>
                 </div>
                 <div className="space-y-1.5">
@@ -260,12 +294,7 @@ export function ReportFlow({
                     <div className="flex-1">
                       <DateField value={toDate} onChange={setToDate} />
                     </div>
-                    <input
-                      type="time"
-                      value={toTime}
-                      onChange={(e) => setToTime(e.target.value)}
-                      className="w-28 rounded-lg border border-line bg-surface px-2.5 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
-                    />
+                    <TimeSelect value={toTime} onChange={setToTime} />
                   </div>
                 </div>
               </div>
