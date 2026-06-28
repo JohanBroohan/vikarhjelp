@@ -1,13 +1,15 @@
-// Server-side query helpers for the Ekstratimer reports. Shared by the report
-// pages and the CSV export route so they always agree on what counts.
+// Server-side query helpers for the Historikk (extra-hours) reports. Shared by
+// the report pages and the CSV export route so they always agree on what counts.
 //
-// "Extra hours" = coverage assignments where a *teacher* did the covering
-// (covering_teacher_id is set). Vikar covers are external; co-teacher covers
-// log no extra hours for anyone.
+// "Extra hours" = coverage assignments where someone actually covered — a
+// teacher/fagarbeider (covering_teacher_id) OR an external vikar
+// (covering_vikar_id). Co-teacher covers log no extra hours for anyone.
 
 import { createClient } from "@/lib/supabase/server";
 import type { DateRange } from "@/lib/reports";
 import type { CoverageAssignment, Lesson } from "@/lib/database.types";
+
+export type CovererKind = "teacher" | "vikar";
 
 export interface CoverRow {
   id: string;
@@ -16,66 +18,91 @@ export interface CoverRow {
   classGroup: string | null;
   subject: string | null;
   room: string | null;
-  coveringTeacherId: string;
-  coveringTeacherName: string;
+  coveringId: string;
+  coveringName: string;
+  coveringKind: CovererKind;
   absentTeacherName: string;
   isSettled: boolean;
 }
 
 export interface TeacherTotal {
-  teacherId: string;
-  teacherName: string;
+  id: string;
+  name: string;
+  kind: CovererKind;
   total: number;
   settled: number;
   unsettled: number;
-  /** Days this person was absent within the range. */
+  /** Days this person was absent within the range (vikars: always 0). */
   absenceDays: number;
 }
 
-async function fetchRawCovers(
-  range: DateRange,
-  coveringTeacherId?: string,
-): Promise<{ covers: CoverageAssignment[]; lessonById: Map<string, Lesson>; nameById: Map<string, string> }> {
+/** Limit a query to one coverer (a teacher OR a vikar). */
+export type CovererFilter = { teacherId: string } | { vikarId: string } | undefined;
+
+async function fetchRawCovers(range: DateRange, coverer: CovererFilter) {
   const supabase = await createClient();
 
-  let query = supabase
-    .from("coverage_assignments")
-    .select("*")
-    .not("covering_teacher_id", "is", null);
+  let query = supabase.from("coverage_assignments").select("*");
+  if (coverer && "teacherId" in coverer) {
+    query = query.eq("covering_teacher_id", coverer.teacherId);
+  } else if (coverer && "vikarId" in coverer) {
+    query = query.eq("covering_vikar_id", coverer.vikarId);
+  }
+  // For the "anyone" case we fetch the range and skip non-covered rows in the
+  // mapper below (rows with neither a covering teacher nor vikar).
   if (range.from) query = query.gte("date", range.from);
   if (range.to) query = query.lte("date", range.to);
-  if (coveringTeacherId) query = query.eq("covering_teacher_id", coveringTeacherId);
 
-  const [coversRes, lessonsRes, teachersRes] = await Promise.all([
+  const [coversRes, lessonsRes, teachersRes, vikarsRes] = await Promise.all([
     query.order("date", { ascending: false }),
     supabase.from("lessons").select("*"),
     supabase.from("teachers").select("id, name"),
+    supabase.from("vikars").select("id, name"),
   ]);
 
   const covers = (coversRes.data ?? []) as CoverageAssignment[];
   const lessonById = new Map(
     ((lessonsRes.data ?? []) as Lesson[]).map((l) => [l.id, l]),
   );
-  const nameById = new Map(
+  const teacherName = new Map(
     (teachersRes.data ?? []).map((t) => [t.id, t.name as string]),
   );
-  return { covers, lessonById, nameById };
+  const vikarName = new Map(
+    (vikarsRes.data ?? []).map((v) => [v.id, v.name as string]),
+  );
+  return { covers, lessonById, teacherName, vikarName };
 }
 
 /** Enriched, sorted list of individual covers (for drilldown + CSV). */
 export async function fetchCoverRows(
   range: DateRange,
-  coveringTeacherId?: string,
+  coverer?: CovererFilter,
 ): Promise<CoverRow[]> {
-  const { covers, lessonById, nameById } = await fetchRawCovers(
+  const { covers, lessonById, teacherName, vikarName } = await fetchRawCovers(
     range,
-    coveringTeacherId,
+    coverer,
   );
 
   return covers
     .map((c): CoverRow | null => {
       const lesson = lessonById.get(c.lesson_id);
-      if (!lesson || !c.covering_teacher_id) return null;
+      if (!lesson) return null;
+
+      let coveringId: string;
+      let coveringName: string;
+      let coveringKind: CovererKind;
+      if (c.covering_teacher_id) {
+        coveringId = c.covering_teacher_id;
+        coveringName = teacherName.get(c.covering_teacher_id) ?? "Ukjent";
+        coveringKind = "teacher";
+      } else if (c.covering_vikar_id) {
+        coveringId = c.covering_vikar_id;
+        coveringName = vikarName.get(c.covering_vikar_id) ?? "Ukjent";
+        coveringKind = "vikar";
+      } else {
+        return null; // not actually covered (pending/uncovered)
+      }
+
       return {
         id: c.id,
         date: c.date,
@@ -83,9 +110,10 @@ export async function fetchCoverRows(
         classGroup: lesson.class_group,
         subject: lesson.subject,
         room: lesson.room,
-        coveringTeacherId: c.covering_teacher_id,
-        coveringTeacherName: nameById.get(c.covering_teacher_id) ?? "Ukjent",
-        absentTeacherName: nameById.get(c.absent_teacher_id) ?? "Ukjent",
+        coveringId,
+        coveringName,
+        coveringKind,
+        absentTeacherName: teacherName.get(c.absent_teacher_id) ?? "Ukjent",
         isSettled: c.is_settled,
       };
     })
@@ -94,13 +122,13 @@ export async function fetchCoverRows(
 }
 
 /**
- * Per-employee totals (for the Historikk overview table): extra hours covered
- * plus days absent, for anyone who covered OR was absent in the range.
+ * Per-coverer totals (for the Historikk overview table): extra hours covered
+ * (teachers, fagarbeidere AND vikars) plus days absent, for anyone who covered
+ * or was absent in the range.
  */
 export async function fetchTeacherTotals(range: DateRange): Promise<TeacherTotal[]> {
   const supabase = await createClient();
 
-  // Absences in range + a name lookup (for people who only have absences).
   let absQuery = supabase.from("absences").select("teacher_id, date");
   if (range.from) absQuery = absQuery.gte("date", range.from);
   if (range.to) absQuery = absQuery.lte("date", range.to);
@@ -110,42 +138,35 @@ export async function fetchTeacherTotals(range: DateRange): Promise<TeacherTotal
     absQuery,
     supabase.from("teachers").select("id, name"),
   ]);
-  const nameById = new Map(
+  const teacherName = new Map(
     (teachersRes.data ?? []).map((t) => [t.id, t.name as string]),
   );
 
-  const byTeacher = new Map<string, TeacherTotal>();
-  const ensure = (id: string, name: string) => {
-    let t = byTeacher.get(id);
+  const byId = new Map<string, TeacherTotal>();
+  const ensure = (id: string, name: string, kind: CovererKind) => {
+    let t = byId.get(id);
     if (!t) {
-      t = {
-        teacherId: id,
-        teacherName: name,
-        total: 0,
-        settled: 0,
-        unsettled: 0,
-        absenceDays: 0,
-      };
-      byTeacher.set(id, t);
+      t = { id, name, kind, total: 0, settled: 0, unsettled: 0, absenceDays: 0 };
+      byId.set(id, t);
     }
     return t;
   };
 
   for (const r of rows) {
-    const t = ensure(r.coveringTeacherId, r.coveringTeacherName);
+    const t = ensure(r.coveringId, r.coveringName, r.coveringKind);
     t.total += 1;
     if (r.isSettled) t.settled += 1;
     else t.unsettled += 1;
   }
   for (const a of absRes.data ?? []) {
-    const t = ensure(a.teacher_id, nameById.get(a.teacher_id) ?? "Ukjent");
+    const t = ensure(a.teacher_id, teacherName.get(a.teacher_id) ?? "Ukjent", "teacher");
     t.absenceDays += 1;
   }
 
-  return [...byTeacher.values()].sort(
+  return [...byId.values()].sort(
     (a, b) =>
       b.total - a.total ||
       b.absenceDays - a.absenceDays ||
-      a.teacherName.localeCompare(b.teacherName, "nb"),
+      a.name.localeCompare(b.name, "nb"),
   );
 }

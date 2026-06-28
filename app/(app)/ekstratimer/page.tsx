@@ -75,15 +75,24 @@ export default async function ExtraHoursPage({
               </thead>
               <tbody>
                 {totals.map((t) => (
-                  <tr key={t.teacherId} className="border-b border-line/70 last:border-0 hover:bg-canvas/50">
-                    <td className="px-4 py-3 font-medium text-ink">{t.teacherName}</td>
+                  <tr key={`${t.kind}-${t.id}`} className="border-b border-line/70 last:border-0 hover:bg-canvas/50">
+                    <td className="px-4 py-3 font-medium text-ink">
+                      {t.name}
+                      {t.kind === "vikar" && (
+                        <span className="ml-2 rounded bg-violet-100 px-1.5 py-0.5 text-[10px] font-medium text-violet-700">
+                          Vikar
+                        </span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-right tabular text-ink">{t.total}</td>
                     <td className="px-4 py-3 text-right tabular text-emerald-700">{t.settled}</td>
                     <td className="px-4 py-3 text-right tabular text-amber-700">{t.unsettled}</td>
-                    <td className="px-4 py-3 text-right tabular text-muted">{t.absenceDays}</td>
+                    <td className="px-4 py-3 text-right tabular text-muted">
+                      {t.kind === "vikar" ? "—" : t.absenceDays}
+                    </td>
                     <td className="px-4 py-3 text-right">
                       <Link
-                        href={`/ekstratimer/${t.teacherId}?${query}`}
+                        href={`/ekstratimer/${t.id}?${query}${t.kind === "vikar" ? "&kind=vikar" : ""}`}
                         className="rounded-lg px-3 py-1.5 text-sm font-medium text-brand-700 hover:bg-brand-50"
                       >
                         Se detaljer

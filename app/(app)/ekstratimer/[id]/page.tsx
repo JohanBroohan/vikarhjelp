@@ -12,22 +12,27 @@ export default async function TeacherExtraHoursPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ preset?: string; from?: string; to?: string }>;
+  searchParams: Promise<{ preset?: string; from?: string; to?: string; kind?: string }>;
 }) {
   const { id } = await params;
   const sp = await searchParams;
   const range = resolveRange(sp, todayISO());
   const query = rangeToQuery(range);
+  const isVikar = sp.kind === "vikar";
 
   const supabase = await createClient();
-  const { data: teacher } = await supabase
-    .from("teachers")
+  const { data: person } = await supabase
+    .from(isVikar ? "vikars" : "teachers")
     .select("id, name")
     .eq("id", id)
     .single();
-  if (!teacher) notFound();
+  if (!person) notFound();
 
-  const rows = await fetchCoverRows(range, id);
+  const rows = await fetchCoverRows(
+    range,
+    isVikar ? { vikarId: id } : { teacherId: id },
+  );
+  const exportSuffix = isVikar ? `&vikar=${id}` : `&teacher=${id}`;
 
   return (
     <Page>
@@ -37,11 +42,11 @@ export default async function TeacherExtraHoursPage({
         </Link>
       </div>
       <PageHeader
-        title={teacher.name}
+        title={person.name}
         description={`Ekstratimer · ${RANGE_LABELS[range.preset]}`}
         actions={
           <a
-            href={`/api/export/ekstratimer?${query}&teacher=${id}`}
+            href={`/api/export/ekstratimer?${query}${exportSuffix}`}
             className="rounded-lg px-3.5 py-2 text-sm font-medium text-brand-700 ring-1 ring-line hover:bg-brand-50"
           >
             Eksporter CSV

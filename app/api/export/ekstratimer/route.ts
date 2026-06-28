@@ -23,16 +23,22 @@ export async function GET(request: NextRequest) {
     },
     todayISO(),
   );
-  const teacherId = sp.get("teacher") ?? undefined;
+  const teacherId = sp.get("teacher");
+  const vikarId = sp.get("vikar");
+  const coverer = teacherId
+    ? { teacherId }
+    : vikarId
+      ? { vikarId }
+      : undefined;
 
-  const rows = await fetchCoverRows(range, teacherId);
+  const rows = await fetchCoverRows(range, coverer);
 
-  const header = ["Lærer", "Dato", "Time", "Klasse", "Fag", "Dekket for", "Oppgjort"];
+  const header = ["Navn", "Dato", "Time", "Klasse", "Fag", "Dekket for", "Oppgjort"];
   const lines = [header.map(csvCell).join(",")];
   for (const r of rows) {
     lines.push(
       [
-        csvCell(r.coveringTeacherName),
+        csvCell(r.coveringName),
         csvCell(r.date),
         csvCell(r.period),
         csvCell(r.classGroup ?? ""),
