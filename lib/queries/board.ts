@@ -142,29 +142,6 @@ export async function getTodayBoard(date: string): Promise<TodayBoard> {
         ? { from: absence.start_time, to: absence.end_time }
         : null;
 
-    // Own lessons today.
-    const own: BoardLesson[] = allLessons
-      .filter((l) => l.teacher_id === t.id && l.weekday === weekday)
-      .map((l) => {
-        track(l);
-        const { start, end } = lessonClock(l);
-        const a = assignmentByLesson.get(l.id);
-        return {
-          id: l.id,
-          start,
-          end,
-          subject: l.subject,
-          classGroup: l.class_group,
-          room: l.room,
-          isClass: isClassActivity(l.subject),
-          kind: "own" as const,
-          coveredAway: Boolean(a),
-          coveringName: a ? coverName(a) : null,
-          coverForName: null,
-          status: a?.status ?? null,
-        };
-      });
-
     // Lessons this teacher is covering for someone else today.
     const covering: BoardLesson[] = assignments
       .filter((a) => a.covering_teacher_id === t.id)
@@ -189,6 +166,35 @@ export async function getTodayBoard(date: string): Promise<TodayBoard> {
         };
       })
       .filter((x): x is BoardLesson => x !== null);
+
+    // Own lessons today. Drop any own slot that overlaps a lesson this teacher
+    // is now covering — the covering block takes that slot's place (otherwise
+    // the original free/office block renders underneath and they visually stack).
+    const overlapsCovering = (start: string, end: string) =>
+      covering.some((c) => start < c.end && c.start < end);
+
+    const own: BoardLesson[] = allLessons
+      .filter((l) => l.teacher_id === t.id && l.weekday === weekday)
+      .map((l) => {
+        track(l);
+        const { start, end } = lessonClock(l);
+        const a = assignmentByLesson.get(l.id);
+        return {
+          id: l.id,
+          start,
+          end,
+          subject: l.subject,
+          classGroup: l.class_group,
+          room: l.room,
+          isClass: isClassActivity(l.subject),
+          kind: "own" as const,
+          coveredAway: Boolean(a),
+          coveringName: a ? coverName(a) : null,
+          coverForName: null,
+          status: a?.status ?? null,
+        };
+      })
+      .filter((l) => !overlapsCovering(l.start, l.end));
 
     return {
       id: t.id,
