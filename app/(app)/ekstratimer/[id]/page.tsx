@@ -33,7 +33,7 @@ export default async function TeacherExtraHoursPage({
     <Page>
       <div className="mb-2">
         <Link href={`/ekstratimer?${query}`} className="text-sm text-muted hover:text-ink">
-          ← Tilbake til ekstratimer
+          ← Tilbake til historikk
         </Link>
       </div>
       <PageHeader

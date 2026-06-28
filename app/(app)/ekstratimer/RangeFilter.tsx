@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import type { DateRange, RangePreset } from "@/lib/reports";
 import { RANGE_LABELS } from "@/lib/reports";
 
-const PRESETS: RangePreset[] = ["week", "month", "all", "custom"];
+const PRESETS: RangePreset[] = ["week", "month", "custom"];
 
 export function RangeFilter({ range }: { range: DateRange }) {
   const router = useRouter();

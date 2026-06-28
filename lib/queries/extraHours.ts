@@ -28,6 +28,8 @@ export interface TeacherTotal {
   total: number;
   settled: number;
   unsettled: number;
+  /** Days this person was absent within the range. */
+  absenceDays: number;
 }
 
 async function fetchRawCovers(
@@ -91,27 +93,59 @@ export async function fetchCoverRows(
     .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : a.period - b.period));
 }
 
-/** Per-teacher totals (for the overview table). */
+/**
+ * Per-employee totals (for the Historikk overview table): extra hours covered
+ * plus days absent, for anyone who covered OR was absent in the range.
+ */
 export async function fetchTeacherTotals(range: DateRange): Promise<TeacherTotal[]> {
-  const rows = await fetchCoverRows(range);
+  const supabase = await createClient();
+
+  // Absences in range + a name lookup (for people who only have absences).
+  let absQuery = supabase.from("absences").select("teacher_id, date");
+  if (range.from) absQuery = absQuery.gte("date", range.from);
+  if (range.to) absQuery = absQuery.lte("date", range.to);
+
+  const [rows, absRes, teachersRes] = await Promise.all([
+    fetchCoverRows(range),
+    absQuery,
+    supabase.from("teachers").select("id, name"),
+  ]);
+  const nameById = new Map(
+    (teachersRes.data ?? []).map((t) => [t.id, t.name as string]),
+  );
+
   const byTeacher = new Map<string, TeacherTotal>();
-  for (const r of rows) {
-    let t = byTeacher.get(r.coveringTeacherId);
+  const ensure = (id: string, name: string) => {
+    let t = byTeacher.get(id);
     if (!t) {
       t = {
-        teacherId: r.coveringTeacherId,
-        teacherName: r.coveringTeacherName,
+        teacherId: id,
+        teacherName: name,
         total: 0,
         settled: 0,
         unsettled: 0,
+        absenceDays: 0,
       };
-      byTeacher.set(r.coveringTeacherId, t);
+      byTeacher.set(id, t);
     }
+    return t;
+  };
+
+  for (const r of rows) {
+    const t = ensure(r.coveringTeacherId, r.coveringTeacherName);
     t.total += 1;
     if (r.isSettled) t.settled += 1;
     else t.unsettled += 1;
   }
+  for (const a of absRes.data ?? []) {
+    const t = ensure(a.teacher_id, nameById.get(a.teacher_id) ?? "Ukjent");
+    t.absenceDays += 1;
+  }
+
   return [...byTeacher.values()].sort(
-    (a, b) => b.total - a.total || a.teacherName.localeCompare(b.teacherName, "nb"),
+    (a, b) =>
+      b.total - a.total ||
+      b.absenceDays - a.absenceDays ||
+      a.teacherName.localeCompare(b.teacherName, "nb"),
   );
 }

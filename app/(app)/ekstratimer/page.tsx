@@ -21,8 +21,8 @@ export default async function ExtraHoursPage({
   return (
     <Page>
       <PageHeader
-        title="Ekstratimer"
-        description="Hvor mange ekstra timer hver lærer har dekket. Marker som oppgjort når det er kompensert."
+        title="Historikk"
+        description="Ekstratimer dekket og dager med fravær per ansatt. Marker ekstratimer som oppgjort når de er kompensert."
         actions={
           <a
             href={`/api/export/ekstratimer?${query}`}
@@ -56,8 +56,8 @@ export default async function ExtraHoursPage({
 
       {totals.length === 0 ? (
         <EmptyState
-          title="Ingen ekstratimer i denne perioden"
-          description="Når lærere dekker timer for hverandre, dukker de opp her."
+          title="Ingen ekstratimer eller fravær i denne perioden"
+          description="Når ansatte dekker timer for hverandre eller har fravær, dukker de opp her."
         />
       ) : (
         <Card className="overflow-hidden">
@@ -65,10 +65,11 @@ export default async function ExtraHoursPage({
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
-                  <th className="px-4 py-3 font-medium">Lærer</th>
+                  <th className="px-4 py-3 font-medium">Ansatt</th>
                   <th className="px-4 py-3 text-right font-medium">Ekstratimer</th>
                   <th className="px-4 py-3 text-right font-medium">Oppgjort</th>
                   <th className="px-4 py-3 text-right font-medium">Utestående</th>
+                  <th className="px-4 py-3 text-right font-medium">Fravær</th>
                   <th className="px-4 py-3 text-right font-medium"></th>
                 </tr>
               </thead>
@@ -79,6 +80,7 @@ export default async function ExtraHoursPage({
                     <td className="px-4 py-3 text-right tabular text-ink">{t.total}</td>
                     <td className="px-4 py-3 text-right tabular text-emerald-700">{t.settled}</td>
                     <td className="px-4 py-3 text-right tabular text-amber-700">{t.unsettled}</td>
+                    <td className="px-4 py-3 text-right tabular text-muted">{t.absenceDays}</td>
                     <td className="px-4 py-3 text-right">
                       <Link
                         href={`/ekstratimer/${t.teacherId}?${query}`}
