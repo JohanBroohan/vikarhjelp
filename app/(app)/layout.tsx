@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { hasSupabaseEnv } from "@/lib/supabase/config";
 import { getUser } from "@/lib/auth";
+import { getMembership } from "@/lib/membership";
 import { Sidebar } from "@/components/Sidebar";
 import { MobileNav } from "@/components/MobileNav";
 
@@ -19,6 +20,10 @@ export default async function AppLayout({
 
   const user = await getUser();
   if (!user) redirect("/login");
+
+  // Signed in but not yet attached to a school → onboarding.
+  const membership = await getMembership();
+  if (!membership) redirect("/onboarding");
 
   return (
     <div className="flex h-screen overflow-hidden">

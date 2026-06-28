@@ -5,35 +5,55 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-export function LoginForm({ next }: { next: string }) {
+export function SignupForm() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [needsConfirm, setNeedsConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    if (password.length < 6) {
+      setError("Passordet må være minst 6 tegn.");
+      return;
+    }
     setLoading(true);
     try {
       const supabase = createClient();
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signUp({
         email: email.trim(),
         password,
       });
       if (error) {
-        setError("Feil e-post eller passord.");
+        setError(error.message);
         setLoading(false);
         return;
       }
-      // Full navigation so the proxy/session cookies are picked up server-side.
-      router.replace(next || "/");
-      router.refresh();
+      if (data.session) {
+        // Email confirmation is off — go straight to onboarding.
+        router.replace("/onboarding");
+        router.refresh();
+      } else {
+        // Confirmation required — user must verify via email first.
+        setNeedsConfirm(true);
+        setLoading(false);
+      }
     } catch {
       setError("Noe gikk galt. Prøv igjen.");
       setLoading(false);
     }
+  }
+
+  if (needsConfirm) {
+    return (
+      <p className="text-sm text-muted">
+        Sjekk e-posten din (<span className="font-medium text-ink">{email}</span>)
+        for å bekrefte kontoen, og logg deretter inn.
+      </p>
+    );
   }
 
   return (
@@ -50,7 +70,7 @@ export function LoginForm({ next }: { next: string }) {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           className="w-full rounded-lg border border-line bg-surface px-3 py-2.5 text-ink outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
-          placeholder="rektor@skolen.no"
+          placeholder="navn@skolen.no"
         />
       </div>
 
@@ -61,12 +81,12 @@ export function LoginForm({ next }: { next: string }) {
         <input
           id="password"
           type="password"
-          autoComplete="current-password"
+          autoComplete="new-password"
           required
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           className="w-full rounded-lg border border-line bg-surface px-3 py-2.5 text-ink outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
-          placeholder="••••••••"
+          placeholder="Minst 6 tegn"
         />
       </div>
 
@@ -81,13 +101,13 @@ export function LoginForm({ next }: { next: string }) {
         disabled={loading}
         className="w-full rounded-lg bg-brand-600 px-4 py-2.5 font-medium text-white transition hover:bg-brand-700 disabled:opacity-60"
       >
-        {loading ? "Logger inn …" : "Logg inn"}
+        {loading ? "Oppretter konto …" : "Opprett konto"}
       </button>
 
       <p className="text-center text-sm text-muted">
-        Ny her?{" "}
-        <Link href="/signup" className="font-medium text-brand-700 hover:underline">
-          Opprett konto
+        Har du allerede en konto?{" "}
+        <Link href="/login" className="font-medium text-brand-700 hover:underline">
+          Logg inn
         </Link>
       </p>
     </form>

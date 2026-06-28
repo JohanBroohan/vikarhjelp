@@ -68,6 +68,27 @@ export type CoverageAssignment = {
   created_at: string;
 };
 
+export type School = {
+  id: string;
+  name: string;
+  created_at: string;
+};
+
+export type Membership = {
+  id: string;
+  user_id: string;
+  school_id: string;
+  email: string | null;
+  created_at: string;
+};
+
+export type Invitation = {
+  id: string;
+  school_id: string;
+  email: string;
+  created_at: string;
+};
+
 // Insert helpers (DB fills id/created_at/defaults).
 export type TeacherInsert = Omit<Teacher, "id" | "created_at">;
 export type VikarInsert = Omit<Vikar, "id" | "created_at">;
@@ -92,6 +113,9 @@ export type Database = {
         Update: Partial<CoverageAssignment>;
         Relationships: [];
       };
+      schools: { Row: School; Insert: Partial<School>; Update: Partial<School>; Relationships: [] };
+      memberships: { Row: Membership; Insert: Partial<Membership>; Update: Partial<Membership>; Relationships: [] };
+      invitations: { Row: Invitation; Insert: Partial<Invitation>; Update: Partial<Invitation>; Relationships: [] };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

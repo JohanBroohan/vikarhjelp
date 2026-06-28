@@ -10,6 +10,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config";
 function isPublicPath(pathname: string): boolean {
   return (
     pathname === "/login" ||
+    pathname === "/signup" ||
     pathname.startsWith("/auth") || // auth callbacks / sign-out
     pathname.startsWith("/api/auth")
   );

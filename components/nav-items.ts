@@ -11,6 +11,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/timeplan", label: "Timeplan", icon: "M4 5h16v16H4zM4 9h16M9 5v16" },
   { href: "/vikarer", label: "Vikarer", icon: "M17 20h5v-1a4 4 0 00-4-4M9 7a4 4 0 100 8 4 4 0 000-8zM1 20v-1a5 5 0 015-5h2a5 5 0 015 5v1" },
   { href: "/ekstratimer", label: "Historikk", icon: "M9 7h6m-6 4h6m-6 4h4M5 3h14v18H5z" },
+  { href: "/medlemmer", label: "Medlemmer", icon: "M17 20h5v-1a4 4 0 00-3-3.87M9 20H4v-1a4 4 0 013-3.87m6-1a4 4 0 10-4-4 4 4 0 004 4zm6-4a3 3 0 10-3-3" },
 ];
 
 export function isNavActive(pathname: string, href: string): boolean {
