@@ -90,6 +90,26 @@ export async function acceptInvite(): Promise<ActionResult<{ joined: boolean }>>
   return { ok: true, data: { joined: true } };
 }
 
+/** Rename the current user's school. */
+export async function renameSchool(name: string): Promise<ActionResult> {
+  const membership = await getMembership();
+  if (!membership) return { ok: false, error: "Du tilhører ingen skole." };
+
+  const clean = requiredText(name);
+  if (!clean) return { ok: false, error: "Skolenavn er påkrevd." };
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("schools")
+    .update({ name: clean })
+    .eq("id", membership.school_id);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/", "layout");
+  revalidatePath("/innstillinger");
+  return { ok: true };
+}
+
 /**
  * Invite someone to the current user's school by email. Records the invitation
  * (the school link that `acceptInvite` consumes) and sends a Supabase invite

@@ -1,14 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import { Card } from "@/components/ui";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { Card, Button, Input } from "@/components/ui";
+import { renameSchool } from "@/lib/actions/members";
 import { MembersSection } from "./MembersSection";
 
-type Tab = "medlemmer" | "konto" | "fakturering";
+type Tab = "konto" | "medlemmer" | "fakturering";
 
 const TABS: { key: Tab; label: string }[] = [
-  { key: "medlemmer", label: "Medlemmer" },
   { key: "konto", label: "Konto" },
+  { key: "medlemmer", label: "Medlemmer" },
   { key: "fakturering", label: "Fakturering" },
 ];
 
@@ -35,7 +37,7 @@ export function SettingsTabs({
   email: string;
   schoolName: string;
 }) {
-  const [tab, setTab] = useState<Tab>("medlemmer");
+  const [tab, setTab] = useState<Tab>("konto");
 
   return (
     <div className="space-y-5">
@@ -67,10 +69,51 @@ export function SettingsTabs({
 }
 
 function AccountSection({ email, schoolName }: { email: string; schoolName: string }) {
+  const router = useRouter();
+  const [name, setName] = useState(schoolName);
+  const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+  const [pending, startTransition] = useTransition();
+
+  function saveSchool(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setSaved(false);
+    startTransition(async () => {
+      const res = await renameSchool(name);
+      if (!res.ok) return setError(res.error);
+      setSaved(true);
+      router.refresh();
+    });
+  }
+
+  const unchanged = name.trim() === schoolName || !name.trim();
+
   return (
     <Card className="max-w-xl divide-y divide-line">
       <Row label="Innlogget som" value={email} />
-      <Row label="Skole" value={schoolName} />
+
+      <div className="px-5 py-4">
+        <form onSubmit={saveSchool} className="space-y-2">
+          <label className="block text-sm text-muted">Skolenavn</label>
+          <div className="flex gap-2">
+            <Input
+              value={name}
+              onChange={(e) => {
+                setName(e.target.value);
+                setSaved(false);
+              }}
+              className="flex-1"
+            />
+            <Button type="submit" disabled={pending || unchanged}>
+              {pending ? "Lagrer …" : "Lagre"}
+            </Button>
+          </div>
+          {error && <p className="text-sm text-red-700">{error}</p>}
+          {saved && <p className="text-sm text-emerald-700">Lagret ✓</p>}
+        </form>
+      </div>
+
       <div className="flex items-center justify-between gap-3 px-5 py-4">
         <div>
           <div className="text-sm font-medium text-ink">Logg ut</div>
