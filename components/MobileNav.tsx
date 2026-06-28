@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { NAV_ITEMS, isNavActive } from "./nav-items";
+import { NAV_ITEMS, SETTINGS_ITEM, isNavActive } from "./nav-items";
 
 /** Compact top navigation shown on small screens (md:hidden). */
 export function MobileNav() {
@@ -24,7 +24,7 @@ export function MobileNav() {
         </form>
       </div>
       <nav className="flex gap-1 overflow-x-auto px-3 pb-2">
-        {NAV_ITEMS.map((item) => {
+        {[...NAV_ITEMS, SETTINGS_ITEM].map((item) => {
           const active = isNavActive(pathname, item.href);
           return (
             <Link

@@ -110,7 +110,7 @@ export async function inviteMember(email: string): Promise<ActionResult> {
     return { ok: false, error: error.message };
   }
 
-  revalidatePath("/medlemmer");
+  revalidatePath("/innstillinger");
   return { ok: true };
 }
 
@@ -135,7 +135,7 @@ export async function removeMember(membershipId: string): Promise<ActionResult> 
   const { error } = await supabase.from("memberships").delete().eq("id", membershipId);
   if (error) return { ok: false, error: error.message };
 
-  revalidatePath("/medlemmer");
+  revalidatePath("/innstillinger");
   return { ok: true };
 }
 
@@ -144,6 +144,6 @@ export async function cancelInvite(invitationId: string): Promise<ActionResult> 
   const supabase = await createClient();
   const { error } = await supabase.from("invitations").delete().eq("id", invitationId);
   if (error) return { ok: false, error: error.message };
-  revalidatePath("/medlemmer");
+  revalidatePath("/innstillinger");
   return { ok: true };
 }

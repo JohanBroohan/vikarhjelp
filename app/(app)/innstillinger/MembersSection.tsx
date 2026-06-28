@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { PageHeader, Button, Card, Field, Input, EmptyState } from "@/components/ui";
+import { Button, Card, Field, Input, EmptyState } from "@/components/ui";
 import { inviteMember, removeMember, cancelInvite } from "@/lib/actions/members";
 
 interface Member {
@@ -15,7 +15,7 @@ interface Invite {
   email: string;
 }
 
-export function MembersManager({
+export function MembersSection({
   members,
   invites,
   currentUserId,
@@ -57,14 +57,9 @@ export function MembersManager({
   }
 
   return (
-    <>
-      <PageHeader
-        title="Medlemmer"
-        description="Personer med tilgang til skolen. Inviter nye ved å skrive inn e-posten deres."
-      />
-
+    <div className="space-y-5">
       {/* Invite */}
-      <Card className="mb-5 p-5">
+      <Card className="p-5">
         <form onSubmit={invite} className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <div className="flex-1">
             <Field label="Inviter med e-post">
@@ -91,7 +86,7 @@ export function MembersManager({
       </Card>
 
       {/* Members */}
-      <Card className="mb-5 overflow-hidden">
+      <Card className="overflow-hidden">
         <div className="border-b border-line px-4 py-3 text-sm font-semibold text-ink">
           Medlemmer ({members.length})
         </div>
@@ -145,6 +140,6 @@ export function MembersManager({
           description="Inviter en kollega med e-posten deres for å gi dem tilgang."
         />
       )}
-    </>
+    </div>
   );
 }

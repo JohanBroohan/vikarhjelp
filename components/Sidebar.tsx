@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { NAV_ITEMS, isNavActive } from "./nav-items";
+import { NAV_ITEMS, SETTINGS_ITEM, isNavActive } from "./nav-items";
 
 const STORAGE_KEY = "vh:sidebar-collapsed";
 
@@ -115,6 +115,31 @@ export function Sidebar({ email }: { email: string | null }) {
             {email}
           </div>
         )}
+
+        <Link
+          href={SETTINGS_ITEM.href}
+          title={collapsed ? SETTINGS_ITEM.label : undefined}
+          className={`flex w-full items-center rounded-lg py-2 text-sm font-medium transition ${
+            collapsed ? "justify-center px-0" : "gap-3 px-3"
+          } ${
+            isNavActive(pathname, SETTINGS_ITEM.href)
+              ? "bg-brand-50 text-brand-700"
+              : "text-muted hover:bg-canvas hover:text-ink"
+          }`}
+        >
+          <svg
+            className="h-[18px] w-[18px] shrink-0"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={1.8}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d={SETTINGS_ITEM.icon} />
+          </svg>
+          {!collapsed && SETTINGS_ITEM.label}
+        </Link>
 
         <form action="/auth/signout" method="post">
           <button
