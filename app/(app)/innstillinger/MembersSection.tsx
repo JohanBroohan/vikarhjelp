@@ -27,14 +27,22 @@ export function MembersSection({
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   function invite(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setNotice(null);
+    const target = email.trim();
     startTransition(async () => {
       const res = await inviteMember(email);
       if (!res.ok) return setError(res.error);
+      setNotice(
+        res.data?.emailSent
+          ? `Invitasjon sendt til ${target}.`
+          : `${target} er lagt til, men e-posten kunne ikke sendes. Be dem registrere seg med denne e-posten, eller sett opp e-post (SMTP) i Supabase.`,
+      );
       setEmail("");
       router.refresh();
     });
@@ -82,6 +90,11 @@ export function MembersSection({
         </p>
         {error && (
           <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
+        )}
+        {notice && (
+          <p className="mt-3 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700 ring-1 ring-emerald-600/20">
+            {notice}
+          </p>
         )}
       </Card>
 

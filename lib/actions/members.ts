@@ -1,12 +1,22 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getMembership } from "@/lib/membership";
 import { type ActionResult, requiredText } from "./_common";
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+/** Best-effort base URL of the running app (for the invite link redirect). */
+async function appOrigin(): Promise<string> {
+  if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL;
+  const h = await headers();
+  const proto = h.get("x-forwarded-proto") ?? "https";
+  const host = h.get("host") ?? "localhost:3000";
+  return `${proto}://${host}`;
+}
 
 /** Onboarding: create a new school and make the current user its first member. */
 export async function createSchool(name: string): Promise<ActionResult> {
@@ -80,8 +90,14 @@ export async function acceptInvite(): Promise<ActionResult<{ joined: boolean }>>
   return { ok: true, data: { joined: true } };
 }
 
-/** Invite someone to the current user's school by email. */
-export async function inviteMember(email: string): Promise<ActionResult> {
+/**
+ * Invite someone to the current user's school by email. Records the invitation
+ * (the school link that `acceptInvite` consumes) and sends a Supabase invite
+ * email with a link to set a password and join.
+ */
+export async function inviteMember(
+  email: string,
+): Promise<ActionResult<{ emailSent: boolean }>> {
   const membership = await getMembership();
   if (!membership) return { ok: false, error: "Du tilhører ingen skole." };
 
@@ -100,6 +116,7 @@ export async function inviteMember(email: string): Promise<ActionResult> {
     return { ok: false, error: "Denne personen er allerede medlem." };
   }
 
+  // Record the school link (used when they finish onboarding).
   const { error } = await supabase
     .from("invitations")
     .insert({ school_id: membership.school_id, email: clean });
@@ -110,8 +127,22 @@ export async function inviteMember(email: string): Promise<ActionResult> {
     return { ok: false, error: error.message };
   }
 
+  // Send the invite email (best-effort: the invitation still works via normal
+  // sign-up if email delivery isn't configured, or the person already exists).
+  let emailSent = false;
+  try {
+    const admin = createAdminClient();
+    const origin = await appOrigin();
+    const { error: inviteErr } = await admin.auth.admin.inviteUserByEmail(clean, {
+      redirectTo: `${origin}/velg-passord`,
+    });
+    emailSent = !inviteErr;
+  } catch {
+    emailSent = false;
+  }
+
   revalidatePath("/innstillinger");
-  return { ok: true };
+  return { ok: true, data: { emailSent } };
 }
 
 /** Remove a member from the school (cannot remove yourself). */
