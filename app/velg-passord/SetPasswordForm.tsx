@@ -7,6 +7,8 @@ import { acceptInvite } from "@/lib/actions/members";
 
 export function SetPasswordForm() {
   const router = useRouter();
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -15,6 +17,10 @@ export function SetPasswordForm() {
   function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    if (!firstName.trim() || !lastName.trim()) {
+      setError("Fornavn og etternavn er påkrevd.");
+      return;
+    }
     if (password.length < 6) {
       setError("Passordet må være minst 6 tegn.");
       return;
@@ -31,7 +37,7 @@ export function SetPasswordForm() {
         return;
       }
       // Attach to the school the invite was for, then enter the app.
-      await acceptInvite();
+      await acceptInvite(firstName, lastName);
       router.replace("/");
       router.refresh();
     });
@@ -39,6 +45,33 @@ export function SetPasswordForm() {
 
   return (
     <form onSubmit={submit} className="space-y-4">
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <label htmlFor="first" className="block text-sm font-medium text-ink">
+            Fornavn
+          </label>
+          <input
+            id="first"
+            required
+            autoFocus
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+            className="w-full rounded-lg border border-line bg-surface px-3 py-2.5 text-ink outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <label htmlFor="last" className="block text-sm font-medium text-ink">
+            Etternavn
+          </label>
+          <input
+            id="last"
+            required
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
+            className="w-full rounded-lg border border-line bg-surface px-3 py-2.5 text-ink outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+          />
+        </div>
+      </div>
       <div className="space-y-1.5">
         <label htmlFor="password" className="block text-sm font-medium text-ink">
           Velg passord

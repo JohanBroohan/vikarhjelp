@@ -9,6 +9,8 @@ interface Member {
   id: string;
   email: string | null;
   user_id: string;
+  first_name: string | null;
+  last_name: string | null;
 }
 interface Invite {
   id: string;
@@ -106,14 +108,23 @@ export function MembersSection({
         <ul className="divide-y divide-line/70">
           {members.map((m) => {
             const isSelf = m.user_id === currentUserId;
+            const fullName = [m.first_name, m.last_name]
+              .filter(Boolean)
+              .join(" ")
+              .trim();
             return (
               <li key={m.id} className="flex items-center justify-between gap-3 px-4 py-3">
-                <span className="text-sm text-ink">
-                  {m.email ?? "—"}
-                  {isSelf && (
-                    <span className="ml-2 rounded bg-canvas px-1.5 py-0.5 text-[10px] font-medium text-muted ring-1 ring-line">
-                      Deg
-                    </span>
+                <span className="min-w-0">
+                  <span className="flex items-center gap-2 text-sm font-medium text-ink">
+                    {fullName || m.email || "—"}
+                    {isSelf && (
+                      <span className="rounded bg-canvas px-1.5 py-0.5 text-[10px] font-medium text-muted ring-1 ring-line">
+                        Deg
+                      </span>
+                    )}
+                  </span>
+                  {fullName && m.email && (
+                    <span className="block truncate text-xs text-muted">{m.email}</span>
                   )}
                 </span>
                 {!isSelf && (

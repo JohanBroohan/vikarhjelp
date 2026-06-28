@@ -5,7 +5,7 @@ import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getMembership } from "@/lib/membership";
-import { type ActionResult, requiredText } from "./_common";
+import { type ActionResult, requiredText, nullableText } from "./_common";
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
@@ -19,7 +19,11 @@ async function appOrigin(): Promise<string> {
 }
 
 /** Onboarding: create a new school and make the current user its first member. */
-export async function createSchool(name: string): Promise<ActionResult> {
+export async function createSchool(
+  name: string,
+  firstName: string,
+  lastName: string,
+): Promise<ActionResult> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -28,6 +32,9 @@ export async function createSchool(name: string): Promise<ActionResult> {
 
   const schoolName = requiredText(name);
   if (!schoolName) return { ok: false, error: "Skolenavn er påkrevd." };
+  if (!requiredText(firstName) || !requiredText(lastName)) {
+    return { ok: false, error: "Fornavn og etternavn er påkrevd." };
+  }
 
   const admin = createAdminClient();
   const { data: existing } = await admin
@@ -44,9 +51,13 @@ export async function createSchool(name: string): Promise<ActionResult> {
     .single();
   if (sErr) return { ok: false, error: sErr.message };
 
-  const { error: mErr } = await admin
-    .from("memberships")
-    .insert({ user_id: user.id, school_id: school!.id, email: user.email });
+  const { error: mErr } = await admin.from("memberships").insert({
+    user_id: user.id,
+    school_id: school!.id,
+    email: user.email,
+    first_name: nullableText(firstName),
+    last_name: nullableText(lastName),
+  });
   if (mErr) return { ok: false, error: mErr.message };
 
   revalidatePath("/", "layout");
@@ -57,7 +68,10 @@ export async function createSchool(name: string): Promise<ActionResult> {
  * Onboarding: if the current user's email has a pending invitation, join that
  * school. Returns whether a join happened.
  */
-export async function acceptInvite(): Promise<ActionResult<{ joined: boolean }>> {
+export async function acceptInvite(
+  firstName?: string,
+  lastName?: string,
+): Promise<ActionResult<{ joined: boolean }>> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -80,14 +94,47 @@ export async function acceptInvite(): Promise<ActionResult<{ joined: boolean }>>
     .maybeSingle();
   if (!invite) return { ok: true, data: { joined: false } };
 
-  const { error: mErr } = await admin
-    .from("memberships")
-    .insert({ user_id: user.id, school_id: invite.school_id, email: user.email });
+  const { error: mErr } = await admin.from("memberships").insert({
+    user_id: user.id,
+    school_id: invite.school_id,
+    email: user.email,
+    first_name: nullableText(firstName),
+    last_name: nullableText(lastName),
+  });
   if (mErr) return { ok: false, error: mErr.message };
   await admin.from("invitations").delete().eq("id", invite.id);
 
   revalidatePath("/", "layout");
   return { ok: true, data: { joined: true } };
+}
+
+/** Update the current user's own first/last name. */
+export async function updateProfile(
+  firstName: string,
+  lastName: string,
+): Promise<ActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Du er ikke innlogget." };
+  if (!requiredText(firstName) || !requiredText(lastName)) {
+    return { ok: false, error: "Fornavn og etternavn er påkrevd." };
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("memberships")
+    .update({
+      first_name: nullableText(firstName),
+      last_name: nullableText(lastName),
+    })
+    .eq("user_id", user.id);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/", "layout");
+  revalidatePath("/innstillinger");
+  return { ok: true };
 }
 
 /** Rename the current user's school. */
