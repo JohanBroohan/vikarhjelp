@@ -32,7 +32,7 @@ export function CoverList({ rows }: { rows: CoverRow[] }) {
     <div>
       <div className="flex items-center justify-between border-b border-line px-4 py-3">
         <p className="text-sm text-muted">
-          {rows.length} ekstratimer · {unsettledIds.length} utestående
+          {rows.length} vikartimer · {unsettledIds.length} utestående
         </p>
         <Button onClick={settleAll} disabled={pending || unsettledIds.length === 0}>
           Marker alle utestående som oppgjort

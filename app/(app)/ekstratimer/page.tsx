@@ -22,7 +22,7 @@ export default async function ExtraHoursPage({
     <Page>
       <PageHeader
         title="Historikk"
-        description="Ekstratimer dekket og dager med fravær per ansatt. Marker ekstratimer som oppgjort når de er kompensert."
+        description="Vikartimer dekket og dager med fravær per ansatt. Marker vikartimer som oppgjort når de er kompensert."
         actions={
           <a
             href={`/api/export/ekstratimer?${query}`}
@@ -40,7 +40,7 @@ export default async function ExtraHoursPage({
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
         <Card className="px-4 py-3.5">
           <div className="text-3xl font-semibold tabular text-ink">{grandTotal}</div>
-          <div className="text-sm text-muted">Ekstratimer totalt</div>
+          <div className="text-sm text-muted">Vikartimer totalt</div>
         </Card>
         <Card className="px-4 py-3.5">
           <div className="text-3xl font-semibold tabular text-amber-700">{grandUnsettled}</div>
@@ -56,7 +56,7 @@ export default async function ExtraHoursPage({
 
       {totals.length === 0 ? (
         <EmptyState
-          title="Ingen ekstratimer eller fravær i denne perioden"
+          title="Ingen vikartimer eller fravær i denne perioden"
           description="Når ansatte dekker timer for hverandre eller har fravær, dukker de opp her."
         />
       ) : (
@@ -66,7 +66,7 @@ export default async function ExtraHoursPage({
               <thead>
                 <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
                   <th className="px-4 py-3 font-medium">Ansatt</th>
-                  <th className="px-4 py-3 text-right font-medium">Ekstratimer</th>
+                  <th className="px-4 py-3 text-right font-medium">Vikartimer</th>
                   <th className="px-4 py-3 text-right font-medium">Oppgjort</th>
                   <th className="px-4 py-3 text-right font-medium">Utestående</th>
                   <th className="px-4 py-3 text-right font-medium">Fravær</th>

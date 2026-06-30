@@ -43,7 +43,7 @@ export default async function TeacherExtraHoursPage({
       </div>
       <PageHeader
         title={person.name}
-        description={`Ekstratimer · ${RANGE_LABELS[range.preset]}`}
+        description={`Vikartimer · ${RANGE_LABELS[range.preset]}`}
         actions={
           <a
             href={`/api/export/ekstratimer?${query}${exportSuffix}`}
@@ -56,7 +56,7 @@ export default async function TeacherExtraHoursPage({
 
       {rows.length === 0 ? (
         <EmptyState
-          title="Ingen ekstratimer i denne perioden"
+          title="Ingen vikartimer i denne perioden"
           description="Velg et annet tidsrom for å se flere."
         />
       ) : (

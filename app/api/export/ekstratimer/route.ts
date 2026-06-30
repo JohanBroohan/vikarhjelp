@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
 
   // BOM so Excel reads UTF-8 (æ/ø/å) correctly.
   const body = "﻿" + lines.join("\r\n") + "\r\n";
-  const fname = `ekstratimer-${range.from ?? "start"}-${range.to ?? "na"}.csv`;
+  const fname = `vikartimer-${range.from ?? "start"}-${range.to ?? "na"}.csv`;
 
   return new Response(body, {
     headers: {

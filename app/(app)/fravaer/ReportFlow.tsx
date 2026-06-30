@@ -801,7 +801,7 @@ function LessonCard({
                         </div>
                         <span
                           className="ml-auto shrink-0 rounded-full bg-canvas px-2 py-0.5 text-xs text-muted ring-1 ring-line"
-                          title="Ekstratimer denne måneden"
+                          title="Vikartimer denne måneden"
                         >
                           {rt.monthCoverCount} i mnd.
                         </span>
@@ -872,7 +872,7 @@ function LessonCard({
                         </div>
                         <span
                           className="ml-auto shrink-0 rounded-full bg-canvas px-2 py-0.5 text-xs text-muted ring-1 ring-line"
-                          title="Ekstratimer denne måneden"
+                          title="Vikartimer denne måneden"
                         >
                           {rt.monthCoverCount} i mnd.
                         </span>
