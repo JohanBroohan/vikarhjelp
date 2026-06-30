@@ -142,6 +142,8 @@ export function ReportFlow({
   // Multi-day coverage: one person covers everything (default) vs assign per day.
   const [coverMode, setCoverMode] = useState<"single" | "perDay">("single");
   const [coverChoice, setCoverChoice] = useState<CoverChoice | null>(null);
+  // Per-day picker: limit dropdowns to people free to cover each class.
+  const [onlyAvailable, setOnlyAvailable] = useState(false);
   // Per-day plan + selections, keyed by `${date}:${lessonId}`.
   // Value encodes the choice: "" = pending, "uncovered", "t:<id>", "v:<id>".
   const [rangePlan, setRangePlan] = useState<RangePlan | null>(null);
@@ -572,10 +574,21 @@ export function ReportFlow({
               </div>
             ) : (
               <div className="mt-4">
-                <p className="mb-3 text-xs text-muted">
-                  Velg hvem som dekker hver time. Timer du lar stå tomme registreres
-                  som «venter», og kan tildeles senere.
-                </p>
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-xs text-muted">
+                    Velg hvem som dekker hver time. Timer du lar stå tomme registreres
+                    som «venter», og kan tildeles senere.
+                  </p>
+                  <label className="flex shrink-0 cursor-pointer items-center gap-2 text-sm text-ink">
+                    <input
+                      type="checkbox"
+                      checked={onlyAvailable}
+                      onChange={(e) => setOnlyAvailable(e.target.checked)}
+                      className="h-4 w-4 rounded border-line text-brand-600 focus:ring-brand-500/30"
+                    />
+                    Vis kun ledige
+                  </label>
+                </div>
                 {loadingPlan && !rangePlan ? (
                   <p className="text-sm text-muted">Henter timer …</p>
                 ) : (
@@ -583,6 +596,7 @@ export function ReportFlow({
                     plan={rangePlan}
                     teachers={teachers.filter((t) => t.id !== teacherId)}
                     vikars={vikars}
+                    onlyAvailable={onlyAvailable}
                     sel={rangeSel}
                     onChange={(key, value) =>
                       setRangeSel((prev) => ({ ...prev, [key]: value }))
@@ -1000,12 +1014,14 @@ function PerDayPlanner({
   plan,
   teachers,
   vikars,
+  onlyAvailable,
   sel,
   onChange,
 }: {
   plan: RangePlan | null;
   teachers: Teacher[];
   vikars: Vikar[];
+  onlyAvailable: boolean;
   sel: Record<string, string>;
   onChange: (key: string, value: string) => void;
 }) {
@@ -1024,6 +1040,18 @@ function PerDayPlanner({
           <ul className="divide-y divide-line/70">
             {day.lessons.map((l) => {
               const key = `${day.date}:${l.lessonId}`;
+              const selVal = sel[key] ?? "";
+              // When filtering, keep the current selection visible even if busy.
+              const selTeacherId = selVal.startsWith("t:") ? selVal.slice(2) : null;
+              const selVikarId = selVal.startsWith("v:") ? selVal.slice(2) : null;
+              const availT = new Set(l.availableTeacherIds);
+              const availV = new Set(l.availableVikarIds);
+              const teacherOpts = onlyAvailable
+                ? teachers.filter((t) => availT.has(t.id) || t.id === selTeacherId)
+                : teachers;
+              const vikarOpts = onlyAvailable
+                ? vikars.filter((v) => availV.has(v.id) || v.id === selVikarId)
+                : vikars;
               return (
                 <li key={l.lessonId} className="flex items-center gap-3 px-3 py-2">
                   <div className="min-w-0 flex-1">
@@ -1035,21 +1063,23 @@ function PerDayPlanner({
                     </div>
                   </div>
                   <select
-                    value={sel[key] ?? ""}
+                    value={selVal}
                     onChange={(e) => onChange(key, e.target.value)}
                     className="w-44 shrink-0 rounded-lg border border-line bg-surface px-2 py-1.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
                   >
                     <option value="">Ikke tildelt</option>
-                    <optgroup label="Lærere">
-                      {teachers.map((t) => (
-                        <option key={t.id} value={`t:${t.id}`}>
-                          {t.name}
-                        </option>
-                      ))}
-                    </optgroup>
-                    {vikars.length > 0 && (
+                    {teacherOpts.length > 0 && (
+                      <optgroup label="Lærere">
+                        {teacherOpts.map((t) => (
+                          <option key={t.id} value={`t:${t.id}`}>
+                            {t.name}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                    {vikarOpts.length > 0 && (
                       <optgroup label="Vikarer">
-                        {vikars.map((v) => (
+                        {vikarOpts.map((v) => (
                           <option key={v.id} value={`v:${v.id}`}>
                             {v.name}
                           </option>

@@ -6,6 +6,12 @@ import { requireUser } from "@/lib/auth";
 import {
   computeCoveragePlan,
   weekdayFromISODate,
+  buildTeacherOwnPeriods,
+  buildCoveringPeriods,
+  availableTeachersForPeriod,
+  absentTeacherIdsForDate,
+  countMonthlyCovers,
+  type AvailabilityContext,
   type LessonCoverage,
 } from "@/lib/coverage";
 import type {
@@ -537,6 +543,10 @@ export interface RangeDayPlan {
     end: string;
     subject: string | null;
     classGroup: string | null;
+    /** Teacher ids genuinely free to cover this class (own-schedule aware). */
+    availableTeacherIds: string[];
+    /** Vikar ids available that weekday. */
+    availableVikarIds: string[];
   }[];
 }
 
@@ -567,27 +577,45 @@ export async function loadRangePlan(input: {
   }
   const supabase = await createClient();
 
-  const { data: lessonsData } = await supabase
-    .from("lessons")
-    .select("*")
-    .eq("teacher_id", input.teacherId);
-  const teacherLessons = (lessonsData ?? []) as Lesson[];
+  const [teachersRes, lessonsRes, absencesRes, assignmentsRes, vikarsRes] =
+    await Promise.all([
+      supabase.from("teachers").select("*"),
+      supabase.from("lessons").select("*"),
+      supabase
+        .from("absences")
+        .select("*")
+        .gte("date", input.fromDate)
+        .lte("date", input.toDate),
+      supabase.from("coverage_assignments").select("*"),
+      supabase.from("vikars").select("*").eq("is_active", true).order("name"),
+    ]);
 
-  const { data: existingRows } = await supabase
-    .from("coverage_assignments")
-    .select("date, lesson_id, covering_teacher_id, covering_vikar_id, status")
-    .eq("absent_teacher_id", input.teacherId)
-    .gte("date", input.fromDate)
-    .lte("date", input.toDate);
+  const teachers = (teachersRes.data ?? []) as Teacher[];
+  const allLessons = (lessonsRes.data ?? []) as Lesson[];
+  const rangeAbsences = (absencesRes.data ?? []) as Absence[];
+  const assignments = (assignmentsRes.data ?? []) as CoverageAssignment[];
+  const vikars = (vikarsRes.data ?? []) as Vikar[];
 
+  const teacherLessons = allLessons.filter((l) => l.teacher_id === input.teacherId);
+  const lessonPeriodById = new Map(allLessons.map((l) => [l.id, l.period]));
+
+  // Existing covers for THIS teacher (for prefilling the selections).
   const existing: RangePlan["existing"] = {};
-  for (const r of existingRows ?? []) {
-    existing[`${r.date}:${r.lesson_id}`] = {
-      coveringTeacherId: r.covering_teacher_id,
-      coveringVikarId: r.covering_vikar_id,
-      uncovered: r.status === "uncovered",
+  for (const a of assignments) {
+    if (a.absent_teacher_id !== input.teacherId) continue;
+    if (a.date < input.fromDate || a.date > input.toDate) continue;
+    existing[`${a.date}:${a.lesson_id}`] = {
+      coveringTeacherId: a.covering_teacher_id,
+      coveringVikarId: a.covering_vikar_id,
+      uncovered: a.status === "uncovered",
     };
   }
+
+  // For availability, ignore THIS teacher's own (under-edit) assignments so the
+  // covers we're reassigning don't make people look busy against themselves.
+  const otherAssignments = assignments.filter(
+    (a) => a.absent_teacher_id !== input.teacherId,
+  );
 
   const days: RangeDayPlan[] = [];
   for (let d = input.fromDate; d <= input.toDate; d = addWeekDays(d, 1)) {
@@ -599,6 +627,25 @@ export async function loadRangePlan(input: {
     const isWhole = start <= SCHOOL_DAY_START && end >= SCHOOL_DAY_END;
     const window = isWhole ? null : { from: start, to: end };
 
+    // Availability context for this specific day.
+    const absentIds = absentTeacherIdsForDate(rangeAbsences, d);
+    absentIds.add(input.teacherId);
+    const ctx: AvailabilityContext = {
+      weekday,
+      teachers,
+      teacherOwnPeriods: buildTeacherOwnPeriods(allLessons, weekday),
+      teacherCoveringPeriods: buildCoveringPeriods(
+        otherAssignments,
+        d,
+        lessonPeriodById,
+      ),
+      absentTeacherIds: absentIds,
+      monthlyCoverCounts: countMonthlyCovers(assignments, d),
+    };
+    const availableVikarIds = vikars
+      .filter((v) => !(v.unavailable_weekdays ?? []).includes(weekday))
+      .map((v) => v.id);
+
     const dayLessons = teacherLessons
       .filter(
         (l) =>
@@ -608,12 +655,22 @@ export async function loadRangePlan(input: {
       )
       .map((l) => {
         const c = lessonClock(l);
+        // Free teachers this period + fagarbeidere (offered even while assisting).
+        const base = availableTeachersForPeriod(l.period, ctx);
+        const fag = availableTeachersForPeriod(l.period, ctx, {
+          ignoreOwnLessons: true,
+        }).filter((r) => r.teacher.role === "fagarbeider");
+        const availableTeacherIds = [
+          ...new Set([...base, ...fag].map((r) => r.teacher.id)),
+        ];
         return {
           lessonId: l.id,
           start: c.start,
           end: c.end,
           subject: l.subject,
           classGroup: l.class_group,
+          availableTeacherIds,
+          availableVikarIds,
         };
       })
       .sort((a, b) => a.start.localeCompare(b.start));
