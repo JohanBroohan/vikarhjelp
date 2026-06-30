@@ -124,7 +124,7 @@ export default async function OversiktPage({
                     className="space-y-0.5 border-b border-line/60 pb-2.5 last:border-0 last:pb-0"
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-medium text-ink">{v.name}</span>
+                      <span className="text-sm font-medium text-ink">{v.name}</span>
                       <PhoneLink phone={v.phone} className="text-xs" />
                     </div>
                     <div className="text-xs text-muted">
