@@ -7,9 +7,16 @@ import { ReportFlow } from "./ReportFlow";
 export default async function ReportAbsencePage({
   searchParams,
 }: {
-  searchParams: Promise<{ date?: string; teacher?: string }>;
+  searchParams: Promise<{
+    date?: string;
+    teacher?: string;
+    from?: string;
+    to?: string;
+  }>;
 }) {
-  const { date, teacher } = await searchParams;
+  const { date, teacher, from, to } = await searchParams;
+  const start = from ?? date ?? todayISO();
+  const end = to ?? from ?? date ?? todayISO();
   const supabase = await createClient();
 
   const [teachersRes, vikarsRes] = await Promise.all([
@@ -26,7 +33,8 @@ export default async function ReportAbsencePage({
       <ReportFlow
         teachers={(teachersRes.data ?? []) as Teacher[]}
         vikars={(vikarsRes.data ?? []) as Vikar[]}
-        initialDate={date ?? todayISO()}
+        initialFromDate={start}
+        initialToDate={end}
         initialTeacherId={teacher ?? ""}
       />
     </Page>

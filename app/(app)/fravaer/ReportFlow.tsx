@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { Teacher, Vikar } from "@/lib/database.types";
 import type { LessonCoverage } from "@/lib/coverage";
@@ -64,6 +64,29 @@ function TimeSelect({
   );
 }
 
+/**
+ * If EVERY class lesson in the range is covered by the same single teacher or
+ * vikar, return that choice (the absence was registered with one cover for all).
+ * Returns null if any lesson is uncovered, pending, or covered by someone else.
+ */
+function detectUniformCover(plan: RangePlan): CoverChoice | null {
+  let choice: CoverChoice | null = null;
+  let count = 0;
+  for (const day of plan.days) {
+    for (const l of day.lessons) {
+      count += 1;
+      const ex = plan.existing[`${day.date}:${l.lessonId}`];
+      let c: CoverChoice | null = null;
+      if (ex?.coveringTeacherId) c = { kind: "teacher", id: ex.coveringTeacherId };
+      else if (ex?.coveringVikarId) c = { kind: "vikar", id: ex.coveringVikarId };
+      else return null; // pending / uncovered / missing → not a uniform cover
+      if (!choice) choice = c;
+      else if (choice.kind !== c.kind || choice.id !== c.id) return null;
+    }
+  }
+  return count > 0 ? choice : null;
+}
+
 function countSchoolDays(from: string, to: string): number {
   if (to < from) return 0;
   let n = 0;
@@ -86,18 +109,20 @@ type RangeDecision = {
 export function ReportFlow({
   teachers,
   vikars,
-  initialDate,
+  initialFromDate,
+  initialToDate,
   initialTeacherId,
 }: {
   teachers: Teacher[];
   vikars: Vikar[];
-  initialDate: string;
+  initialFromDate: string;
+  initialToDate: string;
   initialTeacherId: string;
 }) {
   const router = useRouter();
   const [teacherId, setTeacherId] = useState(initialTeacherId);
-  const [fromDate, setFromDate] = useState(initialDate);
-  const [toDate, setToDate] = useState(initialDate);
+  const [fromDate, setFromDate] = useState(initialFromDate);
+  const [toDate, setToDate] = useState(initialToDate);
   const [fromTime, setFromTime] = useState("08:00"); // "" = whole-day start
   const [toTime, setToTime] = useState("16:00"); // "" = whole-day end
   const [data, setData] = useState<ReportData | null>(null);
@@ -110,7 +135,8 @@ export function ReportFlow({
   const [absenceType, setAbsenceType] = useState(DEFAULT_ABSENCE_TYPE);
 
   // "Hele dagen" (single whole day) vs "Bestemt tidsrom" (from/to date + time).
-  const [rangeMode, setRangeMode] = useState(false);
+  // Opening an existing multi-day absence starts in range mode.
+  const [rangeMode, setRangeMode] = useState(initialToDate > initialFromDate);
 
   // Multi-day coverage: one person covers everything (default) vs assign per day.
   const [coverMode, setCoverMode] = useState<"single" | "perDay">("single");
@@ -120,6 +146,8 @@ export function ReportFlow({
   const [rangePlan, setRangePlan] = useState<RangePlan | null>(null);
   const [rangeSel, setRangeSel] = useState<Record<string, string>>({});
   const [loadingPlan, startPlan] = useTransition();
+  // Restore the saved cover mode only once per absence being edited.
+  const editPrefilled = useRef(false);
 
   const invalidRange = toDate < fromDate;
   const isMultiDay = toDate > fromDate;
@@ -159,10 +187,16 @@ export function ReportFlow({
     });
   }, [teacherId, fromDate, isMultiDay]);
 
-  // Load the per-day plan for the "Tildel per dag og time" option.
+  // Re-detect the saved cover mode when the teacher being edited changes.
+  useEffect(() => {
+    editPrefilled.current = false;
+  }, [teacherId]);
+
+  // Load the per-day plan whenever a multi-day range is selected — used both to
+  // assign per day and to remember how an existing absence was registered.
   useEffect(() => {
     startPlan(async () => {
-      if (!isMultiDay || coverMode !== "perDay" || !teacherId || toDate < fromDate) {
+      if (!isMultiDay || !teacherId || toDate < fromDate) {
         setRangePlan(null);
         return;
       }
@@ -180,7 +214,8 @@ export function ReportFlow({
       }
       setError(null);
       setRangePlan(res.data!);
-      // Prefill selections from any existing covers.
+
+      // Prefill per-lesson selections from existing covers.
       const sel: Record<string, string> = {};
       for (const day of res.data!.days) {
         for (const l of day.lessons) {
@@ -196,8 +231,21 @@ export function ReportFlow({
         }
       }
       setRangeSel(sel);
+
+      // On first load of an already-registered absence, restore the mode it was
+      // saved with: one person for everything, or per-day/per-class.
+      if (!editPrefilled.current && Object.keys(res.data!.existing).length > 0) {
+        const uniform = detectUniformCover(res.data!);
+        if (uniform) {
+          setCoverMode("single");
+          setCoverChoice(uniform);
+        } else {
+          setCoverMode("perDay");
+        }
+        editPrefilled.current = true;
+      }
     });
-  }, [isMultiDay, coverMode, teacherId, fromDate, toDate, fromTime, toTime]);
+  }, [isMultiDay, teacherId, fromDate, toDate, fromTime, toTime]);
 
   const visibleLessons = (data?.lessons ?? []).filter((lc) =>
     lessonInWindow(lc.lesson, window),

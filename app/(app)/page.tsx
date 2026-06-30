@@ -50,7 +50,11 @@ export default async function OversiktPage({
                         {s.name}
                       </span>
                       <Link
-                        href={`/fravaer?date=${board.date}&teacher=${s.id}`}
+                        href={
+                          s.range
+                            ? `/fravaer?teacher=${s.id}&from=${s.range.from}&to=${s.range.to}`
+                            : `/fravaer?date=${board.date}&teacher=${s.id}`
+                        }
                         aria-label={`Endre fravær for ${s.name}`}
                         title="Endre fravær"
                         className="rounded-md p-1 text-muted transition hover:bg-canvas hover:text-brand-700"
