@@ -264,7 +264,7 @@ export function LiveBoard({
           <div className="flex-1 overflow-x-auto">
             <div className="relative min-w-[680px]">
               {/* Time ticks */}
-              <div className="relative border-b border-line" style={{ height: HEAD_H }}>
+              <div className="relative" style={{ height: HEAD_H }}>
                 {ticks.map((m) => (
                   <div
                     key={m}
