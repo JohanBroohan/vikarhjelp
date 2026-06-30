@@ -23,8 +23,10 @@ import {
   saveCoverage,
   deleteAbsence,
   registerMultiDayAbsence,
+  loadRangePlan,
   type LessonDecision,
   type ReportData,
+  type RangePlan,
 } from "@/lib/actions/coverage";
 
 // 24-hour time options (every 15 min, 06:00–18:00). Used instead of the native
@@ -73,6 +75,14 @@ function countSchoolDays(from: string, to: string): number {
 
 type CoverChoice = { kind: "teacher" | "vikar"; id: string };
 
+type RangeDecision = {
+  date: string;
+  lessonId: string;
+  coveringTeacherId?: string | null;
+  coveringVikarId?: string | null;
+  uncovered?: boolean;
+};
+
 export function ReportFlow({
   teachers,
   vikars,
@@ -102,9 +112,14 @@ export function ReportFlow({
   // "Hele dagen" (single whole day) vs "Bestemt tidsrom" (from/to date + time).
   const [rangeMode, setRangeMode] = useState(false);
 
-  // Multi-day coverage: one person covers everything (default) vs assign later.
+  // Multi-day coverage: one person covers everything (default) vs assign per day.
   const [coverMode, setCoverMode] = useState<"single" | "perDay">("single");
   const [coverChoice, setCoverChoice] = useState<CoverChoice | null>(null);
+  // Per-day plan + selections, keyed by `${date}:${lessonId}`.
+  // Value encodes the choice: "" = pending, "uncovered", "t:<id>", "v:<id>".
+  const [rangePlan, setRangePlan] = useState<RangePlan | null>(null);
+  const [rangeSel, setRangeSel] = useState<Record<string, string>>({});
+  const [loadingPlan, startPlan] = useTransition();
 
   const invalidRange = toDate < fromDate;
   const isMultiDay = toDate > fromDate;
@@ -143,6 +158,46 @@ export function ReportFlow({
       }
     });
   }, [teacherId, fromDate, isMultiDay]);
+
+  // Load the per-day plan for the "Tildel per dag og time" option.
+  useEffect(() => {
+    startPlan(async () => {
+      if (!isMultiDay || coverMode !== "perDay" || !teacherId || toDate < fromDate) {
+        setRangePlan(null);
+        return;
+      }
+      const res = await loadRangePlan({
+        teacherId,
+        fromDate,
+        fromTime: fromTime || null,
+        toDate,
+        toTime: toTime || null,
+      });
+      if (!res.ok) {
+        setError(res.error);
+        setRangePlan(null);
+        return;
+      }
+      setError(null);
+      setRangePlan(res.data!);
+      // Prefill selections from any existing covers.
+      const sel: Record<string, string> = {};
+      for (const day of res.data!.days) {
+        for (const l of day.lessons) {
+          const key = `${day.date}:${l.lessonId}`;
+          const ex = res.data!.existing[key];
+          sel[key] = ex?.coveringTeacherId
+            ? `t:${ex.coveringTeacherId}`
+            : ex?.coveringVikarId
+              ? `v:${ex.coveringVikarId}`
+              : ex?.uncovered
+                ? "uncovered"
+                : "";
+        }
+      }
+      setRangeSel(sel);
+    });
+  }, [isMultiDay, coverMode, teacherId, fromDate, toDate, fromTime, toTime]);
 
   const visibleLessons = (data?.lessons ?? []).filter((lc) =>
     lessonInWindow(lc.lesson, window),
@@ -205,6 +260,21 @@ export function ReportFlow({
           ? { teacherId: coverChoice.id }
           : { vikarId: coverChoice.id }
         : null;
+    let decisions: RangeDecision[] | null = null;
+    if (coverMode === "perDay" && rangePlan) {
+      decisions = [];
+      for (const day of rangePlan.days) {
+        for (const l of day.lessons) {
+          const v = rangeSel[`${day.date}:${l.lessonId}`] ?? "";
+          if (v.startsWith("t:"))
+            decisions.push({ date: day.date, lessonId: l.lessonId, coveringTeacherId: v.slice(2) });
+          else if (v.startsWith("v:"))
+            decisions.push({ date: day.date, lessonId: l.lessonId, coveringVikarId: v.slice(2) });
+          else if (v === "uncovered")
+            decisions.push({ date: day.date, lessonId: l.lessonId, uncovered: true });
+        }
+      }
+    }
     startSave(async () => {
       const res = await registerMultiDayAbsence({
         teacherId,
@@ -214,6 +284,7 @@ export function ReportFlow({
         toDate,
         toTime: toTime || null,
         cover,
+        decisions,
       });
       if (!res.ok) return setError(res.error);
       router.push("/");
@@ -439,11 +510,25 @@ export function ReportFlow({
                 </div>
               </div>
             ) : (
-              <p className="mt-4 rounded-lg bg-brand-50 px-3 py-2 text-xs text-brand-800 ring-1 ring-brand-600/15">
-                Fraværet registreres for alle dagene. Timene blir stående som «udekket»
-                — tildel vikar eller lærer per dag og time fra Oversikt («Fravær i
-                dag»).
-              </p>
+              <div className="mt-4">
+                <p className="mb-3 text-xs text-muted">
+                  Velg hvem som dekker hver time. Timer du lar stå tomme registreres
+                  som «venter», og kan tildeles senere.
+                </p>
+                {loadingPlan && !rangePlan ? (
+                  <p className="text-sm text-muted">Henter timer …</p>
+                ) : (
+                  <PerDayPlanner
+                    plan={rangePlan}
+                    teachers={teachers.filter((t) => t.id !== teacherId)}
+                    vikars={vikars}
+                    sel={rangeSel}
+                    onChange={(key, value) =>
+                      setRangeSel((prev) => ({ ...prev, [key]: value }))
+                    }
+                  />
+                )}
+              </div>
             )}
           </Card>
 
@@ -840,6 +925,78 @@ function CardStatusPill({ kind }: { kind: LessonDecision["kind"] }) {
 }
 
 /* -------------------------------------------------------------------------- */
+
+function PerDayPlanner({
+  plan,
+  teachers,
+  vikars,
+  sel,
+  onChange,
+}: {
+  plan: RangePlan | null;
+  teachers: Teacher[];
+  vikars: Vikar[];
+  sel: Record<string, string>;
+  onChange: (key: string, value: string) => void;
+}) {
+  if (!plan) return null;
+  const daysWithLessons = plan.days.filter((d) => d.lessons.length > 0);
+  if (daysWithLessons.length === 0) {
+    return <p className="text-sm text-muted">Ingen timer å dekke i perioden.</p>;
+  }
+  return (
+    <div className="space-y-4">
+      {daysWithLessons.map((day) => (
+        <div key={day.date} className="overflow-hidden rounded-lg border border-line">
+          <div className="border-b border-line bg-canvas/50 px-3 py-2 text-sm font-medium text-ink">
+            {capitalize(formatDateLong(day.date))}
+          </div>
+          <ul className="divide-y divide-line/70">
+            {day.lessons.map((l) => {
+              const key = `${day.date}:${l.lessonId}`;
+              return (
+                <li key={l.lessonId} className="flex items-center gap-3 px-3 py-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="tabular text-sm font-medium text-ink">
+                      {l.start}–{l.end}
+                    </div>
+                    <div className="truncate text-xs text-muted">
+                      {[l.subject, l.classGroup].filter(Boolean).join(" · ") || "Time"}
+                    </div>
+                  </div>
+                  <select
+                    value={sel[key] ?? ""}
+                    onChange={(e) => onChange(key, e.target.value)}
+                    className="w-44 shrink-0 rounded-lg border border-line bg-surface px-2 py-1.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+                  >
+                    <option value="">Ikke tildelt</option>
+                    <optgroup label="Lærere">
+                      {teachers.map((t) => (
+                        <option key={t.id} value={`t:${t.id}`}>
+                          {t.name}
+                        </option>
+                      ))}
+                    </optgroup>
+                    {vikars.length > 0 && (
+                      <optgroup label="Vikarer">
+                        {vikars.map((v) => (
+                          <option key={v.id} value={`v:${v.id}`}>
+                            {v.name}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                    <option value="uncovered">La stå udekket</option>
+                  </select>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 function buildInitialDecisions(data: ReportData): Record<string, LessonDecision> {
   const out: Record<string, LessonDecision> = {};

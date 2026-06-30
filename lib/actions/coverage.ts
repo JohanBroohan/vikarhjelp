@@ -22,6 +22,7 @@ import {
   SCHOOL_DAY_END,
   isClassActivity,
   lessonInWindow,
+  lessonClock,
   type CoverageStatus,
 } from "@/lib/constants";
 import type { ActionResult } from "./_common";
@@ -338,6 +339,18 @@ export interface MultiDayAbsenceInput {
    * per-day assignment later.
    */
   cover?: { teacherId?: string | null; vikarId?: string | null } | null;
+  /**
+   * Optional: explicit per-day, per-lesson assignments (the "Tildel per dag og
+   * time" option). Lessons not listed are left `pending`. Ignored when `cover`
+   * is set.
+   */
+  decisions?: Array<{
+    date: string;
+    lessonId: string;
+    coveringTeacherId?: string | null;
+    coveringVikarId?: string | null;
+    uncovered?: boolean;
+  }> | null;
 }
 
 /**
@@ -371,6 +384,12 @@ export async function registerMultiDayAbsence(
   const coverStatus: CoverageStatus = coverTeacherId
     ? "covered_by_teacher"
     : "covered_by_vikar";
+
+  // Per-day, per-lesson assignments (only used when no single cover is chosen).
+  const decisionsByKey =
+    !cover && input.decisions
+      ? new Map(input.decisions.map((d) => [`${d.date}:${d.lessonId}`, d]))
+      : null;
 
   const { data: lessonsData } = await supabase
     .from("lessons")
@@ -427,39 +446,49 @@ export async function registerMultiDayAbsence(
       await supabase.from("coverage_assignments").delete().in("id", toDelete);
     }
 
+    const hasPlan = cover != null || decisionsByKey != null;
+
     for (const l of dayLessons) {
       const existingId = existingByLesson.get(l.id);
+
+      // Decide who covers this specific class.
+      let coveringTeacher: string | null = null;
+      let coveringVikar: string | null = null;
+      let status: CoverageStatus = "pending";
       if (cover) {
-        // One person covers the whole period — assign (or reassign) every class.
-        const row = {
-          date: d,
-          lesson_id: l.id,
-          absent_teacher_id: input.teacherId,
-          covering_teacher_id: coverTeacherId,
-          covering_vikar_id: coverVikarId,
-          status: coverStatus,
-          notes: null,
-        };
-        const { error } = existingId
-          ? await supabase.from("coverage_assignments").update(row).eq("id", existingId)
-          : await supabase.from("coverage_assignments").insert(row);
-        if (error) return { ok: false, error: error.message };
-        lessons += 1;
-      } else {
-        // Per-day mode — leave each class pending, keep any existing cover as-is.
-        if (existingId) continue;
-        const { error } = await supabase.from("coverage_assignments").insert({
-          date: d,
-          lesson_id: l.id,
-          absent_teacher_id: input.teacherId,
-          covering_teacher_id: null,
-          covering_vikar_id: null,
-          status: "pending",
-          notes: null,
-        });
-        if (error) return { ok: false, error: error.message };
-        lessons += 1;
+        coveringTeacher = coverTeacherId;
+        coveringVikar = coverVikarId;
+        status = coverStatus;
+      } else if (decisionsByKey) {
+        const dec = decisionsByKey.get(`${d}:${l.id}`);
+        if (dec?.coveringTeacherId) {
+          coveringTeacher = dec.coveringTeacherId;
+          status = "covered_by_teacher";
+        } else if (dec?.coveringVikarId) {
+          coveringVikar = dec.coveringVikarId;
+          status = "covered_by_vikar";
+        } else if (dec?.uncovered) {
+          status = "uncovered";
+        }
       }
+
+      // No explicit plan: leave each class pending, keeping any existing cover.
+      if (!hasPlan && existingId) continue;
+
+      const row = {
+        date: d,
+        lesson_id: l.id,
+        absent_teacher_id: input.teacherId,
+        covering_teacher_id: coveringTeacher,
+        covering_vikar_id: coveringVikar,
+        status,
+        notes: null,
+      };
+      const { error } = existingId
+        ? await supabase.from("coverage_assignments").update(row).eq("id", existingId)
+        : await supabase.from("coverage_assignments").insert(row);
+      if (error) return { ok: false, error: error.message };
+      lessons += 1;
     }
   }
 
@@ -467,6 +496,101 @@ export async function registerMultiDayAbsence(
   revalidatePath("/fravaer");
   revalidatePath("/ekstratimer");
   return { ok: true, data: { days, lessons } };
+}
+
+export interface RangeDayPlan {
+  date: string;
+  lessons: {
+    lessonId: string;
+    start: string;
+    end: string;
+    subject: string | null;
+    classGroup: string | null;
+  }[];
+}
+
+export interface RangePlan {
+  days: RangeDayPlan[];
+  /** Existing covers keyed by `${date}:${lessonId}`, for prefilling. */
+  existing: Record<
+    string,
+    { coveringTeacherId: string | null; coveringVikarId: string | null; uncovered: boolean }
+  >;
+}
+
+/**
+ * The per-day breakdown of class lessons that need covering across a date range,
+ * used by the "Tildel per dag og time" option to assign each class inline.
+ */
+export async function loadRangePlan(input: {
+  teacherId: string;
+  fromDate: string;
+  fromTime?: string | null;
+  toDate: string;
+  toTime?: string | null;
+}): Promise<ActionResult<RangePlan>> {
+  await requireUser();
+  if (!input.teacherId) return { ok: false, error: "Velg en lærer." };
+  if (input.toDate < input.fromDate) {
+    return { ok: false, error: "Til-dato må være lik eller etter fra-dato." };
+  }
+  const supabase = await createClient();
+
+  const { data: lessonsData } = await supabase
+    .from("lessons")
+    .select("*")
+    .eq("teacher_id", input.teacherId);
+  const teacherLessons = (lessonsData ?? []) as Lesson[];
+
+  const { data: existingRows } = await supabase
+    .from("coverage_assignments")
+    .select("date, lesson_id, covering_teacher_id, covering_vikar_id, status")
+    .eq("absent_teacher_id", input.teacherId)
+    .gte("date", input.fromDate)
+    .lte("date", input.toDate);
+
+  const existing: RangePlan["existing"] = {};
+  for (const r of existingRows ?? []) {
+    existing[`${r.date}:${r.lesson_id}`] = {
+      coveringTeacherId: r.covering_teacher_id,
+      coveringVikarId: r.covering_vikar_id,
+      uncovered: r.status === "uncovered",
+    };
+  }
+
+  const days: RangeDayPlan[] = [];
+  for (let d = input.fromDate; d <= input.toDate; d = addWeekDays(d, 1)) {
+    const weekday = weekdayFromISODate(d);
+    if (weekday == null) continue; // skip weekends
+
+    const start = d === input.fromDate && input.fromTime ? input.fromTime : SCHOOL_DAY_START;
+    const end = d === input.toDate && input.toTime ? input.toTime : SCHOOL_DAY_END;
+    const isWhole = start <= SCHOOL_DAY_START && end >= SCHOOL_DAY_END;
+    const window = isWhole ? null : { from: start, to: end };
+
+    const dayLessons = teacherLessons
+      .filter(
+        (l) =>
+          l.weekday === weekday &&
+          isClassActivity(l.subject) &&
+          lessonInWindow(l, window),
+      )
+      .map((l) => {
+        const c = lessonClock(l);
+        return {
+          lessonId: l.id,
+          start: c.start,
+          end: c.end,
+          subject: l.subject,
+          classGroup: l.class_group,
+        };
+      })
+      .sort((a, b) => a.start.localeCompare(b.start));
+
+    days.push({ date: d, lessons: dayLessons });
+  }
+
+  return { ok: true, data: { days, existing } };
 }
 
 /* -------------------------------------------------------------------------- */

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getTodayBoard } from "@/lib/queries/board";
-import { todayISO } from "@/lib/format";
+import { todayISO, formatDayMonth } from "@/lib/format";
 import { Page, Card } from "@/components/ui";
 import { PhoneLink } from "@/components/PhoneLink";
 import { LiveBoard } from "./LiveBoard";
@@ -68,6 +68,25 @@ export default async function OversiktPage({
                         </svg>
                       </Link>
                     </div>
+                    {s.range && (
+                      <div className="flex items-center gap-1.5 pl-3.5 text-xs font-medium text-amber-700">
+                        <svg
+                          className="h-3.5 w-3.5"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth={1.8}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <rect x="3" y="4" width="18" height="18" rx="2" />
+                          <path d="M16 2v4M8 2v4M3 10h18" />
+                        </svg>
+                        <span>
+                          Borte {formatDayMonth(s.range.from)} – {formatDayMonth(s.range.to)}
+                        </span>
+                      </div>
+                    )}
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 pl-3.5 text-xs">
                       <span className="tabular text-muted">
                         {s.window ? `${s.window.from}–${s.window.to}` : "Hele dagen"}

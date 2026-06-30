@@ -5,6 +5,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { weekdayFromISODate } from "@/lib/coverage";
+import { addDaysISO } from "@/lib/format";
 import {
   lessonClock,
   isClassActivity,
@@ -76,6 +77,8 @@ export interface TodayBoard {
     id: string;
     name: string;
     window: { from: string; to: string } | null;
+    /** Date span of the absence when it covers more than one day (else null). */
+    range: { from: string; to: string } | null;
     covered: number;
     uncovered: number;
   }[];
@@ -88,6 +91,38 @@ const COVERED: CoverageStatus[] = [
   "covered_by_vikar",
   "covered_by_coteacher",
 ];
+
+/** Previous/next school day (skips weekends). */
+function prevSchoolDayISO(iso: string): string {
+  let d = addDaysISO(iso, -1);
+  while (weekdayFromISODate(d) == null) d = addDaysISO(d, -1);
+  return d;
+}
+function nextSchoolDayISO(iso: string): string {
+  let d = addDaysISO(iso, 1);
+  while (weekdayFromISODate(d) == null) d = addDaysISO(d, 1);
+  return d;
+}
+
+/**
+ * The contiguous run of absent school days containing `today`, given the set of
+ * all the teacher's absence dates. Weekends are bridged (no absence rows exist
+ * for them, but the period spans across).
+ */
+function contiguousRange(
+  dates: Set<string>,
+  today: string,
+): { from: string; to: string } {
+  let from = today;
+  let to = today;
+  for (let p = prevSchoolDayISO(today); dates.has(p); p = prevSchoolDayISO(p)) {
+    from = p;
+  }
+  for (let n = nextSchoolDayISO(today); dates.has(n); n = nextSchoolDayISO(n)) {
+    to = n;
+  }
+  return { from, to };
+}
 
 export async function getTodayBoard(date: string): Promise<TodayBoard> {
   const supabase = await createClient();
@@ -259,15 +294,38 @@ export async function getTodayBoard(date: string): Promise<TodayBoard> {
     coverStats.set(a.absent_teacher_id, s);
   }
 
-  // Sick today (with optional window + coverage counts).
+  // Absence date spans: for each teacher out today, find the contiguous run of
+  // school days they're absent (so a longer period shows its from–to range).
+  const sickIds = [...new Set(absences.map((a) => a.teacher_id))];
+  const spanByTeacher = new Map<string, { from: string; to: string }>();
+  if (sickIds.length > 0) {
+    const { data: spanRows } = await supabase
+      .from("absences")
+      .select("teacher_id, date")
+      .in("teacher_id", sickIds);
+    const datesByTeacher = new Map<string, Set<string>>();
+    for (const r of spanRows ?? []) {
+      const set = datesByTeacher.get(r.teacher_id) ?? new Set<string>();
+      set.add(r.date as string);
+      datesByTeacher.set(r.teacher_id, set);
+    }
+    for (const id of sickIds) {
+      const set = datesByTeacher.get(id) ?? new Set([date]);
+      spanByTeacher.set(id, contiguousRange(set, date));
+    }
+  }
+
+  // Sick today (with optional window + coverage counts + multi-day range).
   const sick = absences
     .map((a) => {
       const stats = coverStats.get(a.teacher_id) ?? { covered: 0, uncovered: 0 };
+      const span = spanByTeacher.get(a.teacher_id) ?? null;
       return {
         id: a.teacher_id,
         name: teacherName.get(a.teacher_id) ?? "Ukjent",
         window:
           a.start_time && a.end_time ? { from: a.start_time, to: a.end_time } : null,
+        range: span && span.from !== span.to ? span : null,
         covered: stats.covered,
         uncovered: stats.uncovered,
       };
