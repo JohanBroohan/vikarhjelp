@@ -43,7 +43,9 @@ export function MembersSection({
       setNotice(
         res.data?.emailSent
           ? `Invitasjon sendt til ${target}.`
-          : `${target} er lagt til, men e-posten kunne ikke sendes. Be dem registrere seg med denne e-posten, eller sett opp e-post (SMTP) i Supabase.`,
+          : `${target} er lagt til, men e-posten kunne ikke sendes${
+              res.data?.emailError ? ` (${res.data.emailError})` : ""
+            }. Be dem registrere seg med denne e-posten, eller sett opp e-post (SMTP) i Supabase.`,
       );
       setEmail("");
       router.refresh();

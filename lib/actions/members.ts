@@ -166,7 +166,7 @@ export async function renameSchool(name: string): Promise<ActionResult> {
  */
 export async function inviteMember(
   email: string,
-): Promise<ActionResult<{ emailSent: boolean }>> {
+): Promise<ActionResult<{ emailSent: boolean; emailError?: string }>> {
   const membership = await getMembership();
   if (!membership) return { ok: false, error: "Du tilhører ingen skole." };
 
@@ -199,6 +199,7 @@ export async function inviteMember(
   // Send the invite email (best-effort: the invitation still works via normal
   // sign-up if email delivery isn't configured, or the person already exists).
   let emailSent = false;
+  let emailError: string | undefined;
   try {
     const admin = createAdminClient();
     const origin = await appOrigin();
@@ -206,12 +207,18 @@ export async function inviteMember(
       redirectTo: `${origin}/velg-passord`,
     });
     emailSent = !inviteErr;
-  } catch {
+    if (inviteErr) {
+      emailError = inviteErr.message;
+      console.error("inviteUserByEmail failed:", inviteErr);
+    }
+  } catch (e) {
     emailSent = false;
+    emailError = e instanceof Error ? e.message : String(e);
+    console.error("inviteUserByEmail threw:", e);
   }
 
   revalidatePath("/innstillinger");
-  return { ok: true, data: { emailSent } };
+  return { ok: true, data: { emailSent, emailError } };
 }
 
 /** Remove a member from the school (cannot remove yourself). */
