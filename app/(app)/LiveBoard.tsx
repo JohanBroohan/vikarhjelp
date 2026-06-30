@@ -249,7 +249,7 @@ export function LiveBoard({
                   <div className="flex items-center gap-1.5">
                     <span className="truncate text-sm font-medium text-ink">{t.name}</span>
                     {t.role === "vikar" && (
-                      <span className="shrink-0 rounded bg-violet-100 px-1.5 py-0.5 text-[10px] font-medium text-violet-700">
+                      <span className="shrink-0 rounded bg-violet-100 px-1.5 py-0.5 text-[10px] font-medium text-violet-700 dark:bg-[rgba(158,122,225,0.1)] dark:text-[#9e7ae1] dark:ring-1 dark:ring-[rgba(158,122,225,0.3)]">
                         Vikar
                       </span>
                     )}
