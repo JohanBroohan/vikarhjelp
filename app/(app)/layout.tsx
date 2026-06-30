@@ -28,7 +28,7 @@ export default async function AppLayout({
   return (
     <div className="flex h-screen overflow-hidden">
       <div className="hidden md:block">
-        <Sidebar email={user.email ?? null} />
+        <Sidebar />
       </div>
       <div className="flex flex-1 flex-col overflow-hidden">
         <MobileNav />

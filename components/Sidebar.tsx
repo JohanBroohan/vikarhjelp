@@ -7,7 +7,7 @@ import { NAV_ITEMS, SETTINGS_ITEM, isNavActive } from "./nav-items";
 
 const STORAGE_KEY = "vh:sidebar-collapsed";
 
-export function Sidebar({ email }: { email: string | null }) {
+export function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
 
@@ -109,12 +109,6 @@ export function Sidebar({ email }: { email: string | null }) {
           </svg>
           {!collapsed && "Skjul meny"}
         </button>
-
-        {!collapsed && email && (
-          <div className="truncate px-3 pt-1 text-xs text-muted" title={email}>
-            {email}
-          </div>
-        )}
 
         <Link
           href={SETTINGS_ITEM.href}
