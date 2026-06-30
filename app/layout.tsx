@@ -17,6 +17,18 @@ export const metadata: Metadata = {
   description: "Administrer lærerfravær og vikardekning for skolen.",
 };
 
+// Applies the saved theme (or the OS preference) before paint, so there's no
+// flash of the wrong theme on load. Kept tiny and inline on purpose.
+const themeScript = `
+(function () {
+  try {
+    var t = localStorage.getItem('vh:theme');
+    var dark = t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    if (dark) document.documentElement.classList.add('dark');
+  } catch (e) {}
+})();
+`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -25,8 +37,12 @@ export default function RootLayout({
   return (
     <html
       lang="no"
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className="min-h-full">{children}</body>
     </html>
   );

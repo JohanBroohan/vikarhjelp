@@ -51,6 +51,29 @@
   }
 }
 
+/*
+  Dark theme. The UI is built on the semantic tokens above (surface, canvas,
+  ink, muted, line) plus the brand accent, so flipping those variables under a
+  `.dark` class re-themes almost everything automatically. `.dark` is toggled on
+  <html> by the sidebar switch + the no-flash script in the root layout.
+*/
+.dark {
+  color-scheme: dark;
+
+  --color-surface: #242320;
+  --color-canvas: #1a1917;
+  --color-ink: #ececea;
+  --color-muted: #9a9892;
+  --color-line: #34322d;
+
+  /* brand-50 backs subtle tints (active nav, info notes, hovers) → dark blue.
+     brand-700/800 are accent TEXT (and the button hover, where lightening reads
+     naturally in dark mode) → legible light blue. */
+  --color-brand-50: #1e2942;
+  --color-brand-700: #8fb0e6;
+  --color-brand-800: #a8c3ee;
+}
+
 /* Status semantic colours used across the app:
    green = covered, amber = pending, red = uncovered, sky = co-teacher */
 @layer components {
@@ -65,5 +88,19 @@
   }
   .status-coteacher {
     @apply bg-sky-50 text-sky-700 ring-1 ring-sky-600/20;
+  }
+
+  /* In dark mode the soft chips read better as translucent dark fills. */
+  .dark .status-covered {
+    @apply bg-emerald-500/15 text-emerald-300 ring-emerald-400/25;
+  }
+  .dark .status-pending {
+    @apply bg-amber-500/15 text-amber-300 ring-amber-400/25;
+  }
+  .dark .status-uncovered {
+    @apply bg-red-500/15 text-red-300 ring-red-400/25;
+  }
+  .dark .status-coteacher {
+    @apply bg-sky-500/15 text-sky-300 ring-sky-400/25;
   }
 }

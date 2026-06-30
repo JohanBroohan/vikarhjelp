@@ -10,8 +10,10 @@ const STORAGE_KEY = "vh:sidebar-collapsed";
 export function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const [dark, setDark] = useState(false);
 
-  // Restore the collapsed preference (kept across reloads, e.g. on the TV).
+  // Restore the collapsed preference (kept across reloads, e.g. on the TV) and
+  // read the current theme (set before paint by the root layout script).
   useEffect(() => {
     const restore = () => {
       try {
@@ -19,9 +21,23 @@ export function Sidebar() {
       } catch {
         /* ignore */
       }
+      setDark(document.documentElement.classList.contains("dark"));
     };
     restore();
   }, []);
+
+  function toggleTheme() {
+    setDark((d) => {
+      const next = !d;
+      try {
+        localStorage.setItem("vh:theme", next ? "dark" : "light");
+      } catch {
+        /* ignore */
+      }
+      document.documentElement.classList.toggle("dark", next);
+      return next;
+    });
+  }
 
   function toggle() {
     setCollapsed((c) => {
@@ -108,6 +124,42 @@ export function Sidebar() {
             <path d="M15 18l-6-6 6-6" />
           </svg>
           {!collapsed && "Skjul meny"}
+        </button>
+
+        <button
+          onClick={toggleTheme}
+          title={collapsed ? (dark ? "Lyst tema" : "Mørkt tema") : undefined}
+          className={`flex w-full items-center rounded-lg py-2 text-sm font-medium text-muted transition hover:bg-canvas hover:text-ink ${
+            collapsed ? "justify-center px-0" : "gap-3 px-3"
+          }`}
+        >
+          {dark ? (
+            <svg
+              className="h-[18px] w-[18px] shrink-0"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.8}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="12" r="4" />
+              <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+            </svg>
+          ) : (
+            <svg
+              className="h-[18px] w-[18px] shrink-0"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.8}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+            </svg>
+          )}
+          {!collapsed && (dark ? "Lyst tema" : "Mørkt tema")}
         </button>
 
         <Link
