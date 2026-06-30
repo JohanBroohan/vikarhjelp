@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import type { Teacher } from "@/lib/database.types";
+import type { Teacher, Vikar } from "@/lib/database.types";
 import type { LessonCoverage } from "@/lib/coverage";
 import {
   PERIOD_TIMES,
@@ -71,12 +71,16 @@ function countSchoolDays(from: string, to: string): number {
   return n;
 }
 
+type CoverChoice = { kind: "teacher" | "vikar"; id: string };
+
 export function ReportFlow({
   teachers,
+  vikars,
   initialDate,
   initialTeacherId,
 }: {
   teachers: Teacher[];
+  vikars: Vikar[];
   initialDate: string;
   initialTeacherId: string;
 }) {
@@ -97,6 +101,10 @@ export function ReportFlow({
 
   // "Hele dagen" (single whole day) vs "Bestemt tidsrom" (from/to date + time).
   const [rangeMode, setRangeMode] = useState(false);
+
+  // Multi-day coverage: one person covers everything (default) vs assign later.
+  const [coverMode, setCoverMode] = useState<"single" | "perDay">("single");
+  const [coverChoice, setCoverChoice] = useState<CoverChoice | null>(null);
 
   const invalidRange = toDate < fromDate;
   const isMultiDay = toDate > fromDate;
@@ -191,6 +199,12 @@ export function ReportFlow({
   function registerRange() {
     if (!teacherId) return;
     setError(null);
+    const cover =
+      coverMode === "single" && coverChoice
+        ? coverChoice.kind === "teacher"
+          ? { teacherId: coverChoice.id }
+          : { vikarId: coverChoice.id }
+        : null;
     startSave(async () => {
       const res = await registerMultiDayAbsence({
         teacherId,
@@ -199,6 +213,7 @@ export function ReportFlow({
         fromTime: fromTime || null,
         toDate,
         toTime: toTime || null,
+        cover,
       });
       if (!res.ok) return setError(res.error);
       router.push("/");
@@ -319,7 +334,7 @@ export function ReportFlow({
         </Card>
       )}
 
-      {/* Multi-day: register the range, assign covers per day later */}
+      {/* Multi-day: pick one cover for the whole period (default), or assign later */}
       {!invalidRange && isMultiDay && selectedTeacher && (
         <>
           <Card className="p-5">
@@ -332,11 +347,104 @@ export function ReportFlow({
             <p className="mt-1 text-sm text-muted">
               {schoolDays} skoledager i perioden (helger hoppes over).
             </p>
-            <p className="mt-3 rounded-lg bg-brand-50 px-3 py-2 text-xs text-brand-800 ring-1 ring-brand-600/15">
-              Fraværet registreres for alle dagene. Timene som trenger dekning blir
-              stående som «udekket» — tildel vikar eller lærer for hver dag fra
-              Oversikt («Fravær i dag»).
-            </p>
+          </Card>
+
+          <Card className="p-5">
+            <p className="mb-2 text-sm font-medium text-ink">Hvem dekker?</p>
+            <div className="inline-flex rounded-lg bg-canvas p-0.5 ring-1 ring-line">
+              <button
+                type="button"
+                onClick={() => setCoverMode("single")}
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
+                  coverMode === "single"
+                    ? "bg-surface text-ink shadow-sm"
+                    : "text-muted hover:text-ink"
+                }`}
+              >
+                Én person dekker alt
+              </button>
+              <button
+                type="button"
+                onClick={() => setCoverMode("perDay")}
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
+                  coverMode === "perDay"
+                    ? "bg-surface text-ink shadow-sm"
+                    : "text-muted hover:text-ink"
+                }`}
+              >
+                Tildel per dag og time
+              </button>
+            </div>
+
+            {coverMode === "single" ? (
+              <div className="mt-4 space-y-4">
+                <p className="text-xs text-muted">
+                  Velg én lærer eller vikar som dekker alle timene i hele perioden.
+                  Alle vises – også de som selv har undervisning i tidsrommet.
+                </p>
+
+                <div>
+                  <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted">
+                    Lærere
+                  </p>
+                  <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+                    {teachers
+                      .filter((t) => t.id !== teacherId)
+                      .map((t) => (
+                        <OptionRow
+                          key={t.id}
+                          selected={
+                            coverChoice?.kind === "teacher" && coverChoice.id === t.id
+                          }
+                          onClick={() => setCoverChoice({ kind: "teacher", id: t.id })}
+                        >
+                          <div className="min-w-0">
+                            <div className="truncate font-medium text-ink">{t.name}</div>
+                            <div className="text-xs text-muted">
+                              <PhoneLink phone={t.phone} />
+                            </div>
+                          </div>
+                        </OptionRow>
+                      ))}
+                  </div>
+                </div>
+
+                <div>
+                  <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted">
+                    Vikarer
+                  </p>
+                  {vikars.length === 0 ? (
+                    <p className="text-sm text-muted">Ingen aktive vikarer registrert.</p>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+                      {vikars.map((v) => (
+                        <OptionRow
+                          key={v.id}
+                          selected={
+                            coverChoice?.kind === "vikar" && coverChoice.id === v.id
+                          }
+                          onClick={() => setCoverChoice({ kind: "vikar", id: v.id })}
+                        >
+                          <div className="min-w-0">
+                            <div className="truncate font-medium text-ink">{v.name}</div>
+                            <div className="text-xs text-muted">
+                              <PhoneLink phone={v.phone} />
+                              {v.notes ? ` · ${v.notes}` : ""}
+                            </div>
+                          </div>
+                        </OptionRow>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <p className="mt-4 rounded-lg bg-brand-50 px-3 py-2 text-xs text-brand-800 ring-1 ring-brand-600/15">
+                Fraværet registreres for alle dagene. Timene blir stående som «udekket»
+                — tildel vikar eller lærer per dag og time fra Oversikt («Fravær i
+                dag»).
+              </p>
+            )}
           </Card>
 
           <div className="sticky bottom-0 z-10 -mx-1 mt-2 rounded-xl border border-line bg-surface/95 px-4 py-3 shadow-lg backdrop-blur">
@@ -344,7 +452,14 @@ export function ReportFlow({
               <Button variant="secondary" onClick={() => router.push("/")}>
                 Avbryt
               </Button>
-              <Button onClick={registerRange} disabled={saving || schoolDays === 0}>
+              <Button
+                onClick={registerRange}
+                disabled={
+                  saving ||
+                  schoolDays === 0 ||
+                  (coverMode === "single" && !coverChoice)
+                }
+              >
                 {saving ? "Registrerer …" : `Registrer fravær (${schoolDays} dager)`}
               </Button>
             </div>

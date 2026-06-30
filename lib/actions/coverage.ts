@@ -331,14 +331,22 @@ export interface MultiDayAbsenceInput {
   fromTime?: string | null;
   toDate: string;
   toTime?: string | null;
+  /**
+   * Optional: one person to cover EVERY class lesson in the whole period. When
+   * set, each class lesson is assigned to this teacher or vikar (even if they
+   * have their own lessons then). When omitted, lessons are left `pending` for
+   * per-day assignment later.
+   */
+  cover?: { teacherId?: string | null; vikarId?: string | null } | null;
 }
 
 /**
  * Register an absence spanning several days. Creates one absence row per
  * weekday in the range (first day from `fromTime`, last day to `toTime`, middle
- * days whole) and a `pending` coverage assignment for each class lesson so the
- * day shows as "udekket" until the principal assigns covers day-by-day.
- * Existing (already-assigned) covers are left untouched.
+ * days whole). If `cover` is given, every class lesson in the period is assigned
+ * to that one teacher/vikar; otherwise each class lesson is left `pending` so
+ * the principal assigns covers day-by-day. Existing covers are overwritten when
+ * a single cover is chosen, and left untouched in per-day mode.
  */
 export async function registerMultiDayAbsence(
   input: MultiDayAbsenceInput,
@@ -352,6 +360,17 @@ export async function registerMultiDayAbsence(
   const absenceType = ABSENCE_TYPES.some((t) => t.value === input.absenceType)
     ? input.absenceType!
     : DEFAULT_ABSENCE_TYPE;
+
+  // A single cover for the whole period (only if a teacher or vikar was picked).
+  const cover =
+    input.cover && (input.cover.teacherId || input.cover.vikarId)
+      ? input.cover
+      : null;
+  const coverTeacherId = cover?.teacherId ?? null;
+  const coverVikarId = cover?.vikarId ?? null;
+  const coverStatus: CoverageStatus = coverTeacherId
+    ? "covered_by_teacher"
+    : "covered_by_vikar";
 
   const { data: lessonsData } = await supabase
     .from("lessons")
@@ -408,20 +427,39 @@ export async function registerMultiDayAbsence(
       await supabase.from("coverage_assignments").delete().in("id", toDelete);
     }
 
-    // Add a pending assignment for each not-yet-tracked class lesson.
     for (const l of dayLessons) {
-      if (existingByLesson.has(l.id)) continue; // keep existing cover as-is
-      const { error } = await supabase.from("coverage_assignments").insert({
-        date: d,
-        lesson_id: l.id,
-        absent_teacher_id: input.teacherId,
-        covering_teacher_id: null,
-        covering_vikar_id: null,
-        status: "pending",
-        notes: null,
-      });
-      if (error) return { ok: false, error: error.message };
-      lessons += 1;
+      const existingId = existingByLesson.get(l.id);
+      if (cover) {
+        // One person covers the whole period — assign (or reassign) every class.
+        const row = {
+          date: d,
+          lesson_id: l.id,
+          absent_teacher_id: input.teacherId,
+          covering_teacher_id: coverTeacherId,
+          covering_vikar_id: coverVikarId,
+          status: coverStatus,
+          notes: null,
+        };
+        const { error } = existingId
+          ? await supabase.from("coverage_assignments").update(row).eq("id", existingId)
+          : await supabase.from("coverage_assignments").insert(row);
+        if (error) return { ok: false, error: error.message };
+        lessons += 1;
+      } else {
+        // Per-day mode — leave each class pending, keep any existing cover as-is.
+        if (existingId) continue;
+        const { error } = await supabase.from("coverage_assignments").insert({
+          date: d,
+          lesson_id: l.id,
+          absent_teacher_id: input.teacherId,
+          covering_teacher_id: null,
+          covering_vikar_id: null,
+          status: "pending",
+          notes: null,
+        });
+        if (error) return { ok: false, error: error.message };
+        lessons += 1;
+      }
     }
   }
 

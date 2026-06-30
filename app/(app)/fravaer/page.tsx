@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { Page, PageHeader } from "@/components/ui";
 import { todayISO } from "@/lib/format";
-import type { Teacher } from "@/lib/database.types";
+import type { Teacher, Vikar } from "@/lib/database.types";
 import { ReportFlow } from "./ReportFlow";
 
 export default async function ReportAbsencePage({
@@ -12,11 +12,10 @@ export default async function ReportAbsencePage({
   const { date, teacher } = await searchParams;
   const supabase = await createClient();
 
-  const { data: teachers } = await supabase
-    .from("teachers")
-    .select("*")
-    .eq("is_active", true)
-    .order("name");
+  const [teachersRes, vikarsRes] = await Promise.all([
+    supabase.from("teachers").select("*").eq("is_active", true).order("name"),
+    supabase.from("vikars").select("*").eq("is_active", true).order("name"),
+  ]);
 
   return (
     <Page>
@@ -25,7 +24,8 @@ export default async function ReportAbsencePage({
         description="Velg lærer og dato. Vikarhjelp finner ledige lærere for hver time."
       />
       <ReportFlow
-        teachers={(teachers ?? []) as Teacher[]}
+        teachers={(teachersRes.data ?? []) as Teacher[]}
+        vikars={(vikarsRes.data ?? []) as Vikar[]}
         initialDate={date ?? todayISO()}
         initialTeacherId={teacher ?? ""}
       />
