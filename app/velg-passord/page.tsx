@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getUser } from "@/lib/auth";
+import { getPendingInvite } from "@/lib/membership";
 import { SetPasswordForm } from "./SetPasswordForm";
 
 export const dynamic = "force-dynamic";
@@ -9,6 +10,9 @@ export default async function SetPasswordPage() {
   // here. Without one, the link was invalid or expired.
   const user = await getUser();
   if (!user) redirect("/login?error=invite");
+
+  const invite = await getPendingInvite(user.email);
+  const schoolName = invite?.schoolName ?? null;
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-canvas px-4">
@@ -21,7 +25,15 @@ export default async function SetPasswordPage() {
             Velkommen til Vikarhjelp
           </h1>
           <p className="mt-1 text-sm text-muted">
-            Velg et passord for å fullføre kontoen din.
+            {schoolName ? (
+              <>
+                Du er invitert til{" "}
+                <span className="font-medium text-ink">{schoolName}</span>. Fyll inn
+                opplysningene dine for å fullføre kontoen.
+              </>
+            ) : (
+              "Fyll inn opplysningene dine for å fullføre kontoen."
+            )}
           </p>
         </div>
 

@@ -71,6 +71,7 @@ export async function createSchool(
 export async function acceptInvite(
   firstName?: string,
   lastName?: string,
+  role?: string,
 ): Promise<ActionResult<{ joined: boolean }>> {
   const supabase = await createClient();
   const {
@@ -100,6 +101,7 @@ export async function acceptInvite(
     email: user.email,
     first_name: nullableText(firstName),
     last_name: nullableText(lastName),
+    role: nullableText(role),
   });
   if (mErr) return { ok: false, error: mErr.message };
   await admin.from("invitations").delete().eq("id", invite.id);

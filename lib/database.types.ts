@@ -81,6 +81,7 @@ export type Membership = {
   email: string | null;
   first_name: string | null;
   last_name: string | null;
+  role: string | null; // slug, see EMPLOYEE_ROLES ("stilling")
   created_at: string;
 };
 
