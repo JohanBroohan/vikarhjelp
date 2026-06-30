@@ -321,6 +321,37 @@ export async function deleteAbsence(
   return { ok: true };
 }
 
+/** Remove an absence and all its coverage assignments across a date range. */
+export async function deleteAbsenceRange(
+  absentTeacherId: string,
+  fromDate: string,
+  toDate: string,
+): Promise<ActionResult> {
+  await requireUser();
+  const supabase = await createClient();
+
+  const { error: covErr } = await supabase
+    .from("coverage_assignments")
+    .delete()
+    .gte("date", fromDate)
+    .lte("date", toDate)
+    .eq("absent_teacher_id", absentTeacherId);
+  if (covErr) return { ok: false, error: covErr.message };
+
+  const { error: absErr } = await supabase
+    .from("absences")
+    .delete()
+    .gte("date", fromDate)
+    .lte("date", toDate)
+    .eq("teacher_id", absentTeacherId);
+  if (absErr) return { ok: false, error: absErr.message };
+
+  revalidatePath("/");
+  revalidatePath("/fravaer");
+  revalidatePath("/ekstratimer");
+  return { ok: true };
+}
+
 /* -------------------------------------------------------------------------- */
 /* Multi-day absence registration                                            */
 /* -------------------------------------------------------------------------- */

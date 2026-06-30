@@ -22,6 +22,7 @@ import {
   loadReportData,
   saveCoverage,
   deleteAbsence,
+  deleteAbsenceRange,
   registerMultiDayAbsence,
   loadRangePlan,
   type LessonDecision,
@@ -349,10 +350,22 @@ export function ReportFlow({
     });
   }
 
+  function removeRange() {
+    if (!confirm("Fjerne hele fraværet og alle dekninger for perioden?")) return;
+    startSave(async () => {
+      const res = await deleteAbsenceRange(teacherId, fromDate, toDate);
+      if (!res.ok) return setError(res.error);
+      router.push("/");
+      router.refresh();
+    });
+  }
+
   const selectedTeacher = teachers.find((t) => t.id === teacherId) ?? null;
   const hasExisting = data && Object.keys(data.existing).length > 0;
   const counts = summarize(visibleLessons, decisions);
   const schoolDays = countSchoolDays(fromDate, toDate);
+  const hasExistingRange =
+    rangePlan != null && Object.keys(rangePlan.existing).length > 0;
 
   return (
     <div className="space-y-5">
@@ -582,6 +595,11 @@ export function ReportFlow({
 
           <div className="sticky bottom-0 z-10 -mx-1 mt-2 rounded-xl border border-line bg-surface/95 px-4 py-3 shadow-lg backdrop-blur">
             <div className="flex items-center justify-end gap-2">
+              {hasExistingRange && (
+                <Button variant="danger" onClick={removeRange} disabled={saving}>
+                  Slett fravær
+                </Button>
+              )}
               <Button variant="secondary" onClick={() => router.push("/")}>
                 Avbryt
               </Button>
@@ -593,7 +611,11 @@ export function ReportFlow({
                   (coverMode === "single" && !coverChoice)
                 }
               >
-                {saving ? "Registrerer …" : `Registrer fravær (${schoolDays} dager)`}
+                {saving
+                  ? "Lagrer …"
+                  : hasExistingRange
+                    ? "Lagre endringer"
+                    : `Registrer fravær (${schoolDays} dager)`}
               </Button>
             </div>
           </div>
