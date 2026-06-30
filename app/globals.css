@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* Make the `dark:` variant follow our `.dark` class (set on <html>) instead of
+   the OS media query, so class-based theming and `dark:` utilities agree. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /*
   Vikarhjelp design system.
   Calm, professional, desktop-first. Warm-neutral surface palette + one accent

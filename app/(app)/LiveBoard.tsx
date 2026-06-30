@@ -367,10 +367,12 @@ function LessonBlock({
   left: number;
   width: number;
 }) {
-  let cls = "bg-brand-100/70 text-brand-900 ring-brand-200";
+  let cls =
+    "bg-brand-100/70 text-brand-900 ring-brand-200 dark:bg-[rgba(57,102,193,0.1)] dark:text-[#bdc1cd] dark:ring-[rgba(57,102,193,0.4)]";
   let prefix = "";
   if (lesson.kind === "covering") {
-    cls = "bg-violet-100/70 text-violet-800 ring-violet-200";
+    cls =
+      "bg-violet-100/70 text-violet-800 ring-violet-200 dark:bg-[rgba(158,122,225,0.1)] dark:text-[#9e7ae1] dark:ring-[rgba(158,122,225,0.3)]";
     prefix = "Dekker: ";
   } else if (lesson.coveredAway) {
     cls = "bg-canvas text-muted ring-line";
@@ -407,8 +409,14 @@ function LessonBlock({
 
 function Legend() {
   const items = [
-    { cls: "bg-brand-100 ring-brand-200", label: "Klasse" },
-    { cls: "bg-violet-100 ring-violet-200", label: "Dekker for andre" },
+    {
+      cls: "bg-brand-100 ring-brand-200 dark:bg-[rgba(57,102,193,0.1)] dark:ring-[rgba(57,102,193,0.4)]",
+      label: "Klasse",
+    },
+    {
+      cls: "bg-violet-100 ring-violet-200 dark:bg-[rgba(158,122,225,0.1)] dark:ring-[rgba(158,122,225,0.3)]",
+      label: "Dekker for andre",
+    },
     { cls: "bg-canvas ring-line", label: "Annet / borte" },
   ];
   return (
