@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { addDaysISO, todayISO, formatDateLong, capitalize } from "@/lib/format";
+import { DateField } from "@/components/DateField";
 
 export function DayNav({ date, isToday }: { date: string; isToday: boolean }) {
   const router = useRouter();
@@ -17,9 +18,30 @@ export function DayNav({ date, isToday }: { date: string; isToday: boolean }) {
         <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
       </button>
 
-      <div className="min-w-[230px] text-center text-lg font-semibold text-ink">
-        {capitalize(formatDateLong(date))}
-      </div>
+      <DateField
+        value={date}
+        onChange={go}
+        trigger={({ toggle }) => (
+          <button
+            onClick={toggle}
+            aria-label="Velg dato"
+            className="flex min-w-[230px] items-center justify-center gap-1.5 rounded-lg px-2 py-1 text-lg font-semibold text-ink transition hover:bg-canvas"
+          >
+            {capitalize(formatDateLong(date))}
+            <svg
+              className="h-4 w-4 shrink-0 text-muted"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </button>
+        )}
+      />
 
       <button
         onClick={() => go(addDaysISO(date, 1))}

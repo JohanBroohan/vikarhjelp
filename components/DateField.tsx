@@ -33,9 +33,12 @@ function firstWeekdayMonFirst(y: number, m: number) {
 export function DateField({
   value,
   onChange,
+  trigger,
 }: {
   value: string;
   onChange: (iso: string) => void;
+  /** Optional custom trigger; falls back to the default bordered field. */
+  trigger?: (args: { open: boolean; toggle: () => void }) => React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -102,23 +105,27 @@ export function DateField({
 
   return (
     <div className="relative" ref={containerRef}>
-      <button
-        type="button"
-        onClick={toggleOpen}
-        className="flex w-full items-center justify-between rounded-lg border border-line bg-surface px-3 py-2 text-left text-sm text-ink outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
-      >
-        <span>{value ? capitalize(formatDateLong(value)) : "Velg dato …"}</span>
-        <svg
-          className="h-4 w-4 shrink-0 text-muted"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={1.8}
-          strokeLinecap="round"
+      {trigger ? (
+        trigger({ open, toggle: toggleOpen })
+      ) : (
+        <button
+          type="button"
+          onClick={toggleOpen}
+          className="flex w-full items-center justify-between rounded-lg border border-line bg-surface px-3 py-2 text-left text-sm text-ink outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
         >
-          <path d="M8 2v4M16 2v4M3 9h18M5 5h14a1 1 0 011 1v13a1 1 0 01-1 1H5a1 1 0 01-1-1V6a1 1 0 011-1z" />
-        </svg>
-      </button>
+          <span>{value ? capitalize(formatDateLong(value)) : "Velg dato …"}</span>
+          <svg
+            className="h-4 w-4 shrink-0 text-muted"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={1.8}
+            strokeLinecap="round"
+          >
+            <path d="M8 2v4M16 2v4M3 9h18M5 5h14a1 1 0 011 1v13a1 1 0 01-1 1H5a1 1 0 01-1-1V6a1 1 0 011-1z" />
+          </svg>
+        </button>
+      )}
 
       {open && (
         <div className="absolute z-30 mt-1 w-72 rounded-xl border border-line bg-surface p-3 shadow-xl">
