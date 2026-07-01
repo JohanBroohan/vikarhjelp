@@ -15,7 +15,6 @@ export default async function ExtraHoursPage({
   const query = rangeToQuery(range);
 
   const totals = await fetchTeacherTotals(range);
-  const grandTotal = totals.reduce((s, t) => s + t.total, 0);
 
   return (
     <Page>
@@ -34,13 +33,6 @@ export default async function ExtraHoursPage({
 
       <div className="mb-5">
         <RangeFilter range={range} />
-      </div>
-
-      <div className="mb-5">
-        <Card className="inline-block px-4 py-3.5">
-          <div className="text-3xl font-medium tabular text-ink">{grandTotal}</div>
-          <div className="text-sm text-muted">Vikartimer totalt</div>
-        </Card>
       </div>
 
       {totals.length === 0 ? (
