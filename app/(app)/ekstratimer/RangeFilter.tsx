@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import type { DateRange, RangePreset } from "@/lib/reports";
 import { RANGE_LABELS } from "@/lib/reports";
+import { DateField } from "@/components/DateField";
 
 const PRESETS: RangePreset[] = ["week", "month", "custom"];
 
@@ -37,19 +38,19 @@ export function RangeFilter({ range }: { range: DateRange }) {
 
       {range.preset === "custom" && (
         <div className="flex items-center gap-2 text-sm">
-          <input
-            type="date"
-            value={range.from ?? ""}
-            onChange={(e) => go("custom", e.target.value, range.to ?? undefined)}
-            className="rounded-lg border border-line bg-surface px-2.5 py-1.5 outline-none focus:border-brand-500"
-          />
+          <div className="w-52">
+            <DateField
+              value={range.from ?? ""}
+              onChange={(iso) => go("custom", iso, range.to ?? undefined)}
+            />
+          </div>
           <span className="text-muted">til</span>
-          <input
-            type="date"
-            value={range.to ?? ""}
-            onChange={(e) => go("custom", range.from ?? undefined, e.target.value)}
-            className="rounded-lg border border-line bg-surface px-2.5 py-1.5 outline-none focus:border-brand-500"
-          />
+          <div className="w-52">
+            <DateField
+              value={range.to ?? ""}
+              onChange={(iso) => go("custom", range.from ?? undefined, iso)}
+            />
+          </div>
         </div>
       )}
     </div>

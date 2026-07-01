@@ -1,6 +1,6 @@
 import { type NextRequest } from "next/server";
 import { getUser } from "@/lib/auth";
-import { todayISO } from "@/lib/format";
+import { todayISO, formatDateNumeric } from "@/lib/format";
 import {
   absenceTypeLabel,
   SCHOOL_DAY_START,
@@ -128,7 +128,7 @@ export async function GET(request: NextRequest) {
     lines.push(
       [
         r.name,
-        r.date,
+        formatDateNumeric(r.date),
         r.type,
         r.time,
         r.klokkeslett,

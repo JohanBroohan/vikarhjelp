@@ -40,6 +40,16 @@ export function formatDateCompact(iso: string): string {
   }).format(new Date(iso + "T00:00:00Z"));
 }
 
+/** "01.07.2026" — day-first numeric (Norwegian). Used for CSV/exports. */
+export function formatDateNumeric(iso: string): string {
+  return new Intl.DateTimeFormat("nb-NO", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(iso + "T00:00:00Z"));
+}
+
 /** "8. juni" — day + long month, for week-grid headers. */
 export function formatDayMonth(iso: string): string {
   return new Intl.DateTimeFormat("nb-NO", {
