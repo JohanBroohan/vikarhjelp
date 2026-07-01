@@ -32,15 +32,15 @@ export default async function OversiktPage({
 
         <div className="space-y-4">
           <Card className="p-4">
-            <h2 className="mb-4 text-base font-normal text-ink">Fravær i dag</h2>
+            <h2 className="mb-1 text-base font-normal text-ink">Fravær i dag</h2>
             {board.sick.length === 0 ? (
               <p className="text-sm text-muted">Ingen fravær registrert i dag.</p>
             ) : (
-              <ul className="space-y-3">
+              <ul className="divide-y divide-line/60">
                 {board.sick.map((s) => (
                   <li
                     key={s.id}
-                    className="relative space-y-0.5 border-b border-line/60 pb-3 pl-3 last:border-0 last:pb-0"
+                    className="relative space-y-0.5 py-3 pl-3"
                   >
                     <span
                       className={`absolute left-0 top-1/2 w-0.5 -translate-y-1/2 rounded-full bg-red-500 ${
@@ -87,17 +87,17 @@ export default async function OversiktPage({
           </Card>
 
           <Card className="p-4">
-            <h2 className="mb-4 text-base font-normal text-ink">
+            <h2 className="mb-1 text-base font-normal text-ink">
               Vikarer på skolen i dag
             </h2>
             {board.vikars.length === 0 ? (
               <p className="text-sm text-muted">Ingen vikarer i dag.</p>
             ) : (
-              <ul className="space-y-3">
+              <ul className="divide-y divide-line/60">
                 {board.vikars.map((v) => (
                   <li
                     key={v.id}
-                    className="relative space-y-0.5 border-b border-line/60 pb-2.5 pl-3 last:border-0 last:pb-0"
+                    className="relative space-y-0.5 py-3 pl-3"
                   >
                     <span className="absolute left-0 top-1/2 h-7 w-0.5 -translate-y-1/2 rounded-full bg-[#6a29df] dark:bg-[#9e7ae1]" />
                     <div className="flex items-center justify-between gap-2">
