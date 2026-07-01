@@ -77,7 +77,7 @@ export function Sidebar() {
       <nav className="flex-1 space-y-0.5 px-3 py-2">
         {NAV_ITEMS.map((item) => {
           const active = isNavActive(pathname, item.href);
-          const Icon = item.icon;
+          const Icon = active && item.activeIcon ? item.activeIcon : item.icon;
           return (
             <Link
               key={item.href}

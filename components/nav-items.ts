@@ -1,27 +1,36 @@
 import type { ComponentType, SVGProps } from "react";
 import { Settings } from "lucide-react";
 import {
-  OversiktIcon,
-  FravaerIcon,
-  AnsatteIcon,
-  TimeplanIcon,
-  VikarerIcon,
-  HistorikkIcon,
+  OversiktLine,
+  OversiktFilled,
+  FravaerLine,
+  FravaerFilled,
+  AnsatteLine,
+  AnsatteFilled,
+  TimeplanLine,
+  TimeplanFilled,
+  VikarerLine,
+  VikarerFilled,
+  HistorikkLine,
+  HistorikkFilled,
 } from "./nav-icons";
+
+type Icon = ComponentType<SVGProps<SVGSVGElement>>;
 
 export interface NavItem {
   href: string;
   label: string;
-  icon: ComponentType<SVGProps<SVGSVGElement>>;
+  icon: Icon; // inactive (line)
+  activeIcon?: Icon; // active (filled)
 }
 
 export const NAV_ITEMS: NavItem[] = [
-  { href: "/", label: "Oversikt", icon: OversiktIcon },
-  { href: "/fravaer", label: "Registrer fravær", icon: FravaerIcon },
-  { href: "/laerere", label: "Ansatte", icon: AnsatteIcon },
-  { href: "/timeplan", label: "Timeplan", icon: TimeplanIcon },
-  { href: "/vikarer", label: "Vikarer", icon: VikarerIcon },
-  { href: "/ekstratimer", label: "Historikk", icon: HistorikkIcon },
+  { href: "/", label: "Oversikt", icon: OversiktLine, activeIcon: OversiktFilled },
+  { href: "/fravaer", label: "Registrer fravær", icon: FravaerLine, activeIcon: FravaerFilled },
+  { href: "/laerere", label: "Ansatte", icon: AnsatteLine, activeIcon: AnsatteFilled },
+  { href: "/timeplan", label: "Timeplan", icon: TimeplanLine, activeIcon: TimeplanFilled },
+  { href: "/vikarer", label: "Vikarer", icon: VikarerLine, activeIcon: VikarerFilled },
+  { href: "/ekstratimer", label: "Historikk", icon: HistorikkLine, activeIcon: HistorikkFilled },
 ];
 
 // Settings sits separately at the bottom of the sidebar (above "Logg ut").
