@@ -223,7 +223,7 @@ function BillingSection({ schoolName }: { schoolName: string }) {
         <div className="flex items-start justify-between gap-3">
           <div>
             <div className="text-sm text-muted">Nåværende plan</div>
-            <div className="mt-0.5 text-lg font-semibold text-ink">Prøveperiode</div>
+            <div className="mt-0.5 text-lg font-medium text-ink">Prøveperiode</div>
             <div className="mt-1 text-sm text-muted">
               {schoolName} bruker Vikarhjelp gratis i prøveperioden. Alle funksjoner
               er tilgjengelige.

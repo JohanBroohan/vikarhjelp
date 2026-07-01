@@ -737,7 +737,7 @@ function LessonCard({
       <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr]">
         {/* Left: lesson identity — time, subject (fag), class (trinn) */}
         <div className="border-b border-line bg-canvas/50 p-4 lg:border-b-0 lg:border-r">
-          <div className="tabular text-lg font-semibold text-ink">
+          <div className="tabular text-lg font-medium text-ink">
             {lesson.start_time ?? PERIOD_TIMES[lesson.period]?.start}
             {(lesson.end_time ?? PERIOD_TIMES[lesson.period]?.end)
               ? `–${lesson.end_time ?? PERIOD_TIMES[lesson.period]?.end}`

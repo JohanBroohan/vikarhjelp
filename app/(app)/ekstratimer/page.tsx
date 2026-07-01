@@ -39,15 +39,15 @@ export default async function ExtraHoursPage({
 
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
         <Card className="px-4 py-3.5">
-          <div className="text-3xl font-semibold tabular text-ink">{grandTotal}</div>
+          <div className="text-3xl font-medium tabular text-ink">{grandTotal}</div>
           <div className="text-sm text-muted">Vikartimer totalt</div>
         </Card>
         <Card className="px-4 py-3.5">
-          <div className="text-3xl font-semibold tabular text-amber-700">{grandUnsettled}</div>
+          <div className="text-3xl font-medium tabular text-amber-700">{grandUnsettled}</div>
           <div className="text-sm text-muted">Utestående (ikke oppgjort)</div>
         </Card>
         <Card className="px-4 py-3.5">
-          <div className="text-3xl font-semibold tabular text-emerald-700">
+          <div className="text-3xl font-medium tabular text-emerald-700">
             {grandTotal - grandUnsettled}
           </div>
           <div className="text-sm text-muted">Oppgjort</div>

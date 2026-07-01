@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { addDaysISO, todayISO, formatDateLong, capitalize } from "@/lib/format";
 import { DateField } from "@/components/DateField";
+import { ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
 
 export function DayNav({ date, isToday }: { date: string; isToday: boolean }) {
   const router = useRouter();
@@ -15,7 +16,7 @@ export function DayNav({ date, isToday }: { date: string; isToday: boolean }) {
         aria-label="Forrige dag"
         className="rounded-lg p-2 text-muted ring-1 ring-line transition hover:bg-canvas hover:text-ink"
       >
-        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
+        <ChevronLeft className="h-4 w-4" strokeWidth={2} />
       </button>
 
       <DateField
@@ -25,20 +26,10 @@ export function DayNav({ date, isToday }: { date: string; isToday: boolean }) {
           <button
             onClick={toggle}
             aria-label="Velg dato"
-            className="flex min-w-[230px] items-center justify-center gap-1.5 rounded-lg px-2 py-1 text-lg font-semibold text-ink transition hover:bg-canvas"
+            className="flex min-w-[230px] items-center justify-center gap-1.5 rounded-lg px-2 py-1 text-lg font-medium text-ink transition hover:bg-canvas"
           >
             {capitalize(formatDateLong(date))}
-            <svg
-              className="h-4 w-4 shrink-0 text-muted"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M6 9l6 6 6-6" />
-            </svg>
+            <ChevronDown className="h-4 w-4 shrink-0 text-muted" strokeWidth={2} />
           </button>
         )}
       />
@@ -48,7 +39,7 @@ export function DayNav({ date, isToday }: { date: string; isToday: boolean }) {
         aria-label="Neste dag"
         className="rounded-lg p-2 text-muted ring-1 ring-line transition hover:bg-canvas hover:text-ink"
       >
-        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
+        <ChevronRight className="h-4 w-4" strokeWidth={2} />
       </button>
 
       {!isToday && (

@@ -104,7 +104,7 @@ export function MembersSection({
 
       {/* Members */}
       <Card className="overflow-hidden">
-        <div className="border-b border-line px-4 py-3 text-sm font-semibold text-ink">
+        <div className="border-b border-line px-4 py-3 text-sm font-medium text-ink">
           Medlemmer ({members.length})
         </div>
         <ul className="divide-y divide-line/70">
@@ -143,7 +143,7 @@ export function MembersSection({
       {/* Pending invitations */}
       {invites.length > 0 ? (
         <Card className="overflow-hidden">
-          <div className="border-b border-line px-4 py-3 text-sm font-semibold text-ink">
+          <div className="border-b border-line px-4 py-3 text-sm font-medium text-ink">
             Inviterte ({invites.length})
           </div>
           <ul className="divide-y divide-line/70">

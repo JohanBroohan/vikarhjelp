@@ -285,7 +285,7 @@ function Stat({
 }) {
   return (
     <Card className="px-4 py-3">
-      <div className={`text-2xl font-semibold tabular ${tone === "ok" ? "text-emerald-700" : "text-ink"}`}>
+      <div className={`text-2xl font-medium tabular ${tone === "ok" ? "text-emerald-700" : "text-ink"}`}>
         {value}
       </div>
       <div className="text-xs text-muted">{label}</div>

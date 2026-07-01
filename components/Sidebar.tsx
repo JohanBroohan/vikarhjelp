@@ -3,9 +3,13 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { ChevronLeft, Moon, Sun, LogOut } from "lucide-react";
 import { NAV_ITEMS, SETTINGS_ITEM, isNavActive } from "./nav-items";
 
 const STORAGE_KEY = "vh:sidebar-collapsed";
+
+const ACTIVE = "bg-[rgba(82,125,216,0.1)] text-[#527dd8]";
+const INACTIVE = "text-muted hover:bg-canvas hover:text-ink";
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -26,6 +30,18 @@ export function Sidebar() {
     restore();
   }, []);
 
+  function toggle() {
+    setCollapsed((c) => {
+      const next = !c;
+      try {
+        localStorage.setItem(STORAGE_KEY, next ? "1" : "0");
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  }
+
   function toggleTheme() {
     setDark((d) => {
       const next = !d;
@@ -35,18 +51,6 @@ export function Sidebar() {
         /* ignore */
       }
       document.documentElement.classList.toggle("dark", next);
-      return next;
-    });
-  }
-
-  function toggle() {
-    setCollapsed((c) => {
-      const next = !c;
-      try {
-        localStorage.setItem(STORAGE_KEY, next ? "1" : "0");
-      } catch {
-        /* ignore */
-      }
       return next;
     });
   }
@@ -63,7 +67,7 @@ export function Sidebar() {
           V
         </div>
         {!collapsed && (
-          <span className="text-lg font-semibold tracking-tight text-ink">
+          <span className="text-lg font-medium tracking-tight text-ink">
             Vikarhjelp
           </span>
         )}
@@ -73,37 +77,24 @@ export function Sidebar() {
       <nav className="flex-1 space-y-0.5 px-3 py-2">
         {NAV_ITEMS.map((item) => {
           const active = isNavActive(pathname, item.href);
+          const Icon = item.icon;
           return (
             <Link
               key={item.href}
               href={item.href}
               title={collapsed ? item.label : undefined}
-              className={`flex items-center rounded-lg py-2 text-sm font-medium transition ${
-                collapsed ? "justify-center px-0" : "gap-3 px-3"
-              } ${
-                active
-                  ? "bg-brand-50 text-brand-700"
-                  : "text-muted hover:bg-canvas hover:text-ink"
-              }`}
+              className={`flex items-center rounded-xl py-2 text-sm font-medium transition ${
+                collapsed ? "justify-center px-0" : "gap-2.5 px-3"
+              } ${active ? ACTIVE : INACTIVE}`}
             >
-              <svg
-                className="h-[18px] w-[18px] shrink-0"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={1.8}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d={item.icon} />
-              </svg>
+              <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={1.8} />
               {!collapsed && item.label}
             </Link>
           );
         })}
       </nav>
 
-      {/* Footer: collapse toggle, account, sign out */}
+      {/* Footer: collapse toggle, theme, settings, sign out */}
       <div className="space-y-1 border-t border-line p-3">
         <button
           onClick={toggle}
@@ -112,17 +103,10 @@ export function Sidebar() {
             collapsed ? "justify-center px-0" : "gap-3 px-3"
           }`}
         >
-          <svg
+          <ChevronLeft
             className={`h-[18px] w-[18px] shrink-0 transition-transform ${collapsed ? "rotate-180" : ""}`}
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
             strokeWidth={1.8}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M15 18l-6-6 6-6" />
-          </svg>
+          />
           {!collapsed && "Skjul meny"}
         </button>
 
@@ -134,30 +118,9 @@ export function Sidebar() {
           }`}
         >
           {dark ? (
-            <svg
-              className="h-[18px] w-[18px] shrink-0"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={1.8}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <circle cx="12" cy="12" r="4" />
-              <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
-            </svg>
+            <Sun className="h-[18px] w-[18px] shrink-0" strokeWidth={1.8} />
           ) : (
-            <svg
-              className="h-[18px] w-[18px] shrink-0"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={1.8}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-            </svg>
+            <Moon className="h-[18px] w-[18px] shrink-0" strokeWidth={1.8} />
           )}
           {!collapsed && (dark ? "Lyst tema" : "Mørkt tema")}
         </button>
@@ -167,23 +130,9 @@ export function Sidebar() {
           title={collapsed ? SETTINGS_ITEM.label : undefined}
           className={`flex w-full items-center rounded-lg py-2 text-sm font-medium transition ${
             collapsed ? "justify-center px-0" : "gap-3 px-3"
-          } ${
-            isNavActive(pathname, SETTINGS_ITEM.href)
-              ? "bg-brand-50 text-brand-700"
-              : "text-muted hover:bg-canvas hover:text-ink"
-          }`}
+          } ${isNavActive(pathname, SETTINGS_ITEM.href) ? ACTIVE : INACTIVE}`}
         >
-          <svg
-            className="h-[18px] w-[18px] shrink-0"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={1.8}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d={SETTINGS_ITEM.icon} />
-          </svg>
+          <SETTINGS_ITEM.icon className="h-[18px] w-[18px] shrink-0" strokeWidth={1.8} />
           {!collapsed && SETTINGS_ITEM.label}
         </Link>
 
@@ -195,17 +144,7 @@ export function Sidebar() {
               collapsed ? "justify-center px-0" : "gap-3 px-3"
             }`}
           >
-            <svg
-              className="h-[18px] w-[18px] shrink-0"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={1.8}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M16 17l5-5-5-5M21 12H9M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
-            </svg>
+            <LogOut className="h-[18px] w-[18px] shrink-0" strokeWidth={1.8} />
             {!collapsed && "Logg ut"}
           </button>
         </form>

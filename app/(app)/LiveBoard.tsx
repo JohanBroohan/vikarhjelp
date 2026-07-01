@@ -210,7 +210,7 @@ export function LiveBoard({
       {isToday && (
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-baseline gap-3">
-            <span className="tabular text-3xl font-semibold text-ink">
+            <span className="tabular text-3xl font-medium text-ink">
               {now == null ? "––:––" : fmtClock(now)}
             </span>
             {now != null && (

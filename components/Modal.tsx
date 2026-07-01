@@ -37,7 +37,7 @@ export function Modal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-line px-5 py-4">
-          <h2 className="text-lg font-semibold text-ink">{title}</h2>
+          <h2 className="text-lg font-medium text-ink">{title}</h2>
           <button
             onClick={onClose}
             aria-label="Lukk"

@@ -15,7 +15,7 @@ export function MobileNav() {
           <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-600 text-xs font-bold text-white">
             V
           </span>
-          <span className="font-semibold text-ink">Vikarhjelp</span>
+          <span className="font-medium text-ink">Vikarhjelp</span>
         </Link>
         <form action="/auth/signout" method="post">
           <button type="submit" className="text-sm font-medium text-muted">
@@ -30,8 +30,10 @@ export function MobileNav() {
             <Link
               key={item.href}
               href={item.href}
-              className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition ${
-                active ? "bg-brand-50 text-brand-700" : "text-muted hover:text-ink"
+              className={`whitespace-nowrap rounded-xl px-3 py-1.5 text-sm font-medium transition ${
+                active
+                  ? "bg-[rgba(82,125,216,0.1)] text-[#527dd8]"
+                  : "text-muted hover:text-ink"
               }`}
             >
               {item.label}

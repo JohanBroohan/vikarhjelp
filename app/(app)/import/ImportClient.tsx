@@ -257,7 +257,7 @@ function Stat({
   }[tone];
   return (
     <Card className="px-4 py-3">
-      <div className={`text-2xl font-semibold tabular ${toneClass}`}>{value}</div>
+      <div className={`text-2xl font-medium tabular ${toneClass}`}>{value}</div>
       <div className="text-xs text-muted">{label}</div>
     </Card>
   );

@@ -21,7 +21,7 @@ export default async function OnboardingPage() {
           <div className="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-brand-600 text-xl font-bold text-white">
             V
           </div>
-          <h1 className="text-2xl font-semibold tracking-tight text-ink">
+          <h1 className="text-2xl font-medium tracking-tight text-ink">
             {invite ? "Bli med i skolen" : "Sett opp skolen din"}
           </h1>
           <p className="mt-1 text-sm text-muted">

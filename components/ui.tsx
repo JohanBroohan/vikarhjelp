@@ -30,7 +30,7 @@ export function PageHeader({
   return (
     <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-ink">{title}</h1>
+        <h1 className="text-2xl font-medium tracking-tight text-ink">{title}</h1>
         {description && (
           <p className="mt-1 text-sm text-muted">{description}</p>
         )}
@@ -51,7 +51,7 @@ export function Card({
 }) {
   return (
     <div
-      className={`rounded-xl border border-line bg-surface shadow-sm ${className}`}
+      className={`rounded-2xl bg-surface shadow-[0px_4px_40px_0px_rgba(42,53,76,0.08)] dark:border dark:border-line dark:shadow-none ${className}`}
     >
       {children}
     </div>
@@ -68,7 +68,7 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-line bg-surface px-6 py-14 text-center">
+    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-line bg-surface px-6 py-14 text-center">
       <p className="text-base font-medium text-ink">{title}</p>
       {description && (
         <p className="mt-1 max-w-md text-sm text-muted">{description}</p>

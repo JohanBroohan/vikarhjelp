@@ -1,23 +1,34 @@
+import {
+  Home,
+  CalendarPlus,
+  Users,
+  CalendarDays,
+  UserCheck,
+  ClipboardList,
+  Settings,
+  type LucideIcon,
+} from "lucide-react";
+
 export interface NavItem {
   href: string;
   label: string;
-  icon: string; // SVG path data
+  icon: LucideIcon;
 }
 
 export const NAV_ITEMS: NavItem[] = [
-  { href: "/", label: "Oversikt", icon: "M3 12l9-9 9 9M5 10v10h14V10" },
-  { href: "/fravaer", label: "Registrer fravær", icon: "M12 5v14M5 12h14" },
-  { href: "/laerere", label: "Ansatte", icon: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM4 21v-1a6 6 0 0112 0v1" },
-  { href: "/timeplan", label: "Timeplan", icon: "M4 5h16v16H4zM4 9h16M9 5v16" },
-  { href: "/vikarer", label: "Vikarer", icon: "M17 20h5v-1a4 4 0 00-4-4M9 7a4 4 0 100 8 4 4 0 000-8zM1 20v-1a5 5 0 015-5h2a5 5 0 015 5v1" },
-  { href: "/ekstratimer", label: "Historikk", icon: "M9 7h6m-6 4h6m-6 4h4M5 3h14v18H5z" },
+  { href: "/", label: "Oversikt", icon: Home },
+  { href: "/fravaer", label: "Registrer fravær", icon: CalendarPlus },
+  { href: "/laerere", label: "Ansatte", icon: Users },
+  { href: "/timeplan", label: "Timeplan", icon: CalendarDays },
+  { href: "/vikarer", label: "Vikarer", icon: UserCheck },
+  { href: "/ekstratimer", label: "Historikk", icon: ClipboardList },
 ];
 
 // Settings sits separately at the bottom of the sidebar (above "Logg ut").
 export const SETTINGS_ITEM: NavItem = {
   href: "/innstillinger",
   label: "Innstillinger",
-  icon: "M10.3 4.3a1.7 1.7 0 013.4 0 1.7 1.7 0 002.6 1.1 1.7 1.7 0 012.3 2.3 1.7 1.7 0 001.1 2.6 1.7 1.7 0 010 3.4 1.7 1.7 0 00-1.1 2.6 1.7 1.7 0 01-2.3 2.3 1.7 1.7 0 00-2.6 1.1 1.7 1.7 0 01-3.4 0 1.7 1.7 0 00-2.6-1.1 1.7 1.7 0 01-2.3-2.3 1.7 1.7 0 00-1.1-2.6 1.7 1.7 0 010-3.4 1.7 1.7 0 001.1-2.6 1.7 1.7 0 012.3-2.3 1.7 1.7 0 002.6-1.1zM15 12a3 3 0 11-6 0 3 3 0 016 0z",
+  icon: Settings,
 };
 
 export function isNavActive(pathname: string, href: string): boolean {
