@@ -40,46 +40,46 @@ export default async function OversiktPage({
                 {board.sick.map((s) => (
                   <li
                     key={s.id}
-                    className="relative space-y-0.5 py-3 pl-3"
+                    className="relative flex items-center justify-between gap-2 py-3 pl-3"
                   >
                     <span
                       className={`absolute left-0 top-1/2 w-0.5 -translate-y-1/2 rounded-full bg-red-500 ${
                         s.range ? "h-11" : "h-7"
                       }`}
                     />
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-sm font-medium text-ink">{s.name}</span>
-                      <Link
-                        href={
-                          s.range
-                            ? `/fravaer?teacher=${s.id}&from=${s.range.from}&to=${s.range.to}`
-                            : `/fravaer?date=${board.date}&teacher=${s.id}`
-                        }
-                        aria-label={`Endre fravær for ${s.name}`}
-                        title="Endre fravær"
-                        className="rounded-md p-1 text-[#527dd8] transition hover:bg-canvas"
-                      >
-                        <Pencil className="h-3.5 w-3.5" strokeWidth={1.8} />
-                      </Link>
-                    </div>
-                    {s.range && (
-                      <div className="text-xs font-medium text-amber-700">
-                        Borte {formatDayMonth(s.range.from)} – {formatDayMonth(s.range.to)}
+                    <div className="min-w-0 space-y-0.5">
+                      <span className="block text-sm font-medium text-ink">{s.name}</span>
+                      {s.range && (
+                        <div className="text-xs font-medium text-amber-700">
+                          Borte {formatDayMonth(s.range.from)} – {formatDayMonth(s.range.to)}
+                        </div>
+                      )}
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs">
+                        <span className="tabular text-muted">
+                          {s.window ? `${s.window.from}–${s.window.to}` : "Hele dagen"}
+                        </span>
+                        <span className="text-emerald-700">{s.covered} dekket</span>
+                        <span
+                          className={
+                            s.uncovered > 0 ? "font-medium text-red-700" : "text-muted"
+                          }
+                        >
+                          {s.uncovered} udekket
+                        </span>
                       </div>
-                    )}
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs">
-                      <span className="tabular text-muted">
-                        {s.window ? `${s.window.from}–${s.window.to}` : "Hele dagen"}
-                      </span>
-                      <span className="text-emerald-700">{s.covered} dekket</span>
-                      <span
-                        className={
-                          s.uncovered > 0 ? "font-medium text-red-700" : "text-muted"
-                        }
-                      >
-                        {s.uncovered} udekket
-                      </span>
                     </div>
+                    <Link
+                      href={
+                        s.range
+                          ? `/fravaer?teacher=${s.id}&from=${s.range.from}&to=${s.range.to}`
+                          : `/fravaer?date=${board.date}&teacher=${s.id}`
+                      }
+                      aria-label={`Endre fravær for ${s.name}`}
+                      title="Endre fravær"
+                      className="shrink-0 rounded-md p-1 text-[#527dd8] transition hover:bg-canvas"
+                    >
+                      <Pencil className="h-3.5 w-3.5" strokeWidth={1.8} />
+                    </Link>
                   </li>
                 ))}
               </ul>
