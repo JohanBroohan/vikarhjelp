@@ -58,7 +58,7 @@ export default async function OversiktPage({
                         title="Endre fravær"
                         className="rounded-md p-1 text-muted transition hover:bg-canvas hover:text-brand-700"
                       >
-                        <Pencil className="h-4 w-4" strokeWidth={1.8} />
+                        <Pencil className="h-3.5 w-3.5" strokeWidth={1.8} />
                       </Link>
                     </div>
                     {s.range && (
