@@ -7,7 +7,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import type { DateRange } from "@/lib/reports";
-import type { CoverageAssignment, Lesson } from "@/lib/database.types";
+import type { Absence, CoverageAssignment, Lesson } from "@/lib/database.types";
 
 export type CovererKind = "teacher" | "vikar";
 
@@ -22,6 +22,15 @@ export interface CoverRow {
   coveringName: string;
   coveringKind: CovererKind;
   absentTeacherName: string;
+}
+
+export interface AbsenceRow {
+  id: string;
+  date: string;
+  /** Absence type slug (see ABSENCE_TYPES). */
+  absenceType: string;
+  /** Partial-day window, or null for a whole-day absence. */
+  window: { from: string; to: string } | null;
 }
 
 export interface TeacherTotal {
@@ -115,6 +124,78 @@ export async function fetchCoverRows(
     })
     .filter((r): r is CoverRow => r !== null)
     .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : a.period - b.period));
+}
+
+/** A teacher's own absences within the range (most recent first). */
+export async function fetchAbsenceRows(
+  range: DateRange,
+  teacherId: string,
+): Promise<AbsenceRow[]> {
+  const supabase = await createClient();
+  let query = supabase
+    .from("absences")
+    .select("id, date, absence_type, start_time, end_time")
+    .eq("teacher_id", teacherId);
+  if (range.from) query = query.gte("date", range.from);
+  if (range.to) query = query.lte("date", range.to);
+  const { data } = await query.order("date", { ascending: false });
+
+  return (
+    (data ?? []) as Pick<
+      Absence,
+      "id" | "date" | "absence_type" | "start_time" | "end_time"
+    >[]
+  ).map((a) => ({
+    id: a.id,
+    date: a.date,
+    absenceType: a.absence_type,
+    window:
+      a.start_time && a.end_time ? { from: a.start_time, to: a.end_time } : null,
+  }));
+}
+
+export interface AbsenceExportRow extends AbsenceRow {
+  /** The absent teacher's name (for CSV export across everyone). */
+  name: string;
+}
+
+/**
+ * Absences for the CSV export — for one teacher (when `teacherId` is given) or
+ * everyone, each enriched with the teacher's name.
+ */
+export async function fetchAbsenceExportRows(
+  range: DateRange,
+  teacherId?: string,
+): Promise<AbsenceExportRow[]> {
+  const supabase = await createClient();
+  let query = supabase
+    .from("absences")
+    .select("id, teacher_id, date, absence_type, start_time, end_time");
+  if (teacherId) query = query.eq("teacher_id", teacherId);
+  if (range.from) query = query.gte("date", range.from);
+  if (range.to) query = query.lte("date", range.to);
+
+  const [absRes, teachersRes] = await Promise.all([
+    query.order("date", { ascending: false }),
+    supabase.from("teachers").select("id, name"),
+  ]);
+  const teacherName = new Map(
+    (teachersRes.data ?? []).map((t) => [t.id, t.name as string]),
+  );
+
+  return (
+    (absRes.data ?? []) as Pick<
+      Absence,
+      "id" | "teacher_id" | "date" | "absence_type" | "start_time" | "end_time"
+    >[]
+  ).map((a) => ({
+    id: a.id,
+    name: teacherName.get(a.teacher_id) ?? "Ukjent",
+    date: a.date,
+    absenceType: a.absence_type,
+    window:
+      a.start_time && a.end_time ? { from: a.start_time, to: a.end_time } : null,
+  }));
 }
 
 /**

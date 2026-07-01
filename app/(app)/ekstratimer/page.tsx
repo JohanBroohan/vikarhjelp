@@ -4,6 +4,7 @@ import { todayISO } from "@/lib/format";
 import { resolveRange, rangeToQuery } from "@/lib/reports";
 import { fetchTeacherTotals } from "@/lib/queries/extraHours";
 import { RangeFilter } from "./RangeFilter";
+import { ExportCsvMenu } from "./ExportCsvMenu";
 
 export default async function ExtraHoursPage({
   searchParams,
@@ -21,14 +22,7 @@ export default async function ExtraHoursPage({
       <PageHeader
         title="Historikk"
         description="Vikartimer dekket og dager med fravær per ansatt."
-        actions={
-          <a
-            href={`/api/export/ekstratimer?${query}`}
-            className="rounded-lg px-3.5 py-2 text-sm font-medium text-brand-700 ring-1 ring-line hover:bg-brand-50"
-          >
-            Eksporter CSV
-          </a>
-        }
+        actions={<ExportCsvMenu query={query} absencesAvailable />}
       />
 
       <div className="mb-5">

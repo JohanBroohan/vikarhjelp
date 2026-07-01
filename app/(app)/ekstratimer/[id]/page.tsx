@@ -4,8 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 import { Page, PageHeader, Card, EmptyState } from "@/components/ui";
 import { todayISO } from "@/lib/format";
 import { resolveRange, rangeToQuery, RANGE_LABELS } from "@/lib/reports";
-import { fetchCoverRows } from "@/lib/queries/extraHours";
-import { CoverList } from "./CoverList";
+import { fetchCoverRows, fetchAbsenceRows } from "@/lib/queries/extraHours";
+import { HistoryList } from "./HistoryList";
+import { ExportCsvMenu } from "../ExportCsvMenu";
 
 export default async function TeacherExtraHoursPage({
   params,
@@ -32,6 +33,8 @@ export default async function TeacherExtraHoursPage({
     range,
     isVikar ? { vikarId: id } : { teacherId: id },
   );
+  // Only staff (teachers) have absences; vikars are external.
+  const absences = isVikar ? [] : await fetchAbsenceRows(range, id);
   const exportSuffix = isVikar ? `&vikar=${id}` : `&teacher=${id}`;
 
   return (
@@ -43,25 +46,24 @@ export default async function TeacherExtraHoursPage({
       </div>
       <PageHeader
         title={person.name}
-        description={`Vikartimer · ${RANGE_LABELS[range.preset]}`}
+        description={`Fravær og vikartimer · ${RANGE_LABELS[range.preset]}`}
         actions={
-          <a
-            href={`/api/export/ekstratimer?${query}${exportSuffix}`}
-            className="rounded-lg px-3.5 py-2 text-sm font-medium text-brand-700 ring-1 ring-line hover:bg-brand-50"
-          >
-            Eksporter CSV
-          </a>
+          <ExportCsvMenu
+            query={query}
+            suffix={exportSuffix}
+            absencesAvailable={!isVikar}
+          />
         }
       />
 
-      {rows.length === 0 ? (
+      {rows.length === 0 && absences.length === 0 ? (
         <EmptyState
-          title="Ingen vikartimer i denne perioden"
+          title="Ingen fravær eller vikartimer i denne perioden"
           description="Velg et annet tidsrom for å se flere."
         />
       ) : (
         <Card className="overflow-hidden">
-          <CoverList rows={rows} />
+          <HistoryList covers={rows} absences={absences} />
         </Card>
       )}
     </Page>
