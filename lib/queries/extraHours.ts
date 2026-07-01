@@ -22,7 +22,6 @@ export interface CoverRow {
   coveringName: string;
   coveringKind: CovererKind;
   absentTeacherName: string;
-  isSettled: boolean;
 }
 
 export interface TeacherTotal {
@@ -30,8 +29,6 @@ export interface TeacherTotal {
   name: string;
   kind: CovererKind;
   total: number;
-  settled: number;
-  unsettled: number;
   /** Days this person was absent within the range (vikars: always 0). */
   absenceDays: number;
 }
@@ -114,7 +111,6 @@ export async function fetchCoverRows(
         coveringName,
         coveringKind,
         absentTeacherName: teacherName.get(c.absent_teacher_id) ?? "Ukjent",
-        isSettled: c.is_settled,
       };
     })
     .filter((r): r is CoverRow => r !== null)
@@ -146,7 +142,7 @@ export async function fetchTeacherTotals(range: DateRange): Promise<TeacherTotal
   const ensure = (id: string, name: string, kind: CovererKind) => {
     let t = byId.get(id);
     if (!t) {
-      t = { id, name, kind, total: 0, settled: 0, unsettled: 0, absenceDays: 0 };
+      t = { id, name, kind, total: 0, absenceDays: 0 };
       byId.set(id, t);
     }
     return t;
@@ -155,8 +151,6 @@ export async function fetchTeacherTotals(range: DateRange): Promise<TeacherTotal
   for (const r of rows) {
     const t = ensure(r.coveringId, r.coveringName, r.coveringKind);
     t.total += 1;
-    if (r.isSettled) t.settled += 1;
-    else t.unsettled += 1;
   }
   for (const a of absRes.data ?? []) {
     const t = ensure(a.teacher_id, teacherName.get(a.teacher_id) ?? "Ukjent", "teacher");

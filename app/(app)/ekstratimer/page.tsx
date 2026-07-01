@@ -16,13 +16,12 @@ export default async function ExtraHoursPage({
 
   const totals = await fetchTeacherTotals(range);
   const grandTotal = totals.reduce((s, t) => s + t.total, 0);
-  const grandUnsettled = totals.reduce((s, t) => s + t.unsettled, 0);
 
   return (
     <Page>
       <PageHeader
         title="Historikk"
-        description="Vikartimer dekket og dager med fravær per ansatt. Marker vikartimer som oppgjort når de er kompensert."
+        description="Vikartimer dekket og dager med fravær per ansatt."
         actions={
           <a
             href={`/api/export/ekstratimer?${query}`}
@@ -37,20 +36,10 @@ export default async function ExtraHoursPage({
         <RangeFilter range={range} />
       </div>
 
-      <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <Card className="px-4 py-3.5">
+      <div className="mb-5">
+        <Card className="inline-block px-4 py-3.5">
           <div className="text-3xl font-medium tabular text-ink">{grandTotal}</div>
           <div className="text-sm text-muted">Vikartimer totalt</div>
-        </Card>
-        <Card className="px-4 py-3.5">
-          <div className="text-3xl font-medium tabular text-amber-700">{grandUnsettled}</div>
-          <div className="text-sm text-muted">Utestående (ikke oppgjort)</div>
-        </Card>
-        <Card className="px-4 py-3.5">
-          <div className="text-3xl font-medium tabular text-emerald-700">
-            {grandTotal - grandUnsettled}
-          </div>
-          <div className="text-sm text-muted">Oppgjort</div>
         </Card>
       </div>
 
@@ -67,8 +56,6 @@ export default async function ExtraHoursPage({
                 <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
                   <th className="px-4 py-3 font-medium">Ansatt</th>
                   <th className="px-4 py-3 text-right font-medium">Vikartimer</th>
-                  <th className="px-4 py-3 text-right font-medium">Oppgjort</th>
-                  <th className="px-4 py-3 text-right font-medium">Utestående</th>
                   <th className="px-4 py-3 text-right font-medium">Fravær</th>
                   <th className="px-4 py-3 text-right font-medium"></th>
                 </tr>
@@ -85,8 +72,6 @@ export default async function ExtraHoursPage({
                       )}
                     </td>
                     <td className="px-4 py-3 text-right tabular text-ink">{t.total}</td>
-                    <td className="px-4 py-3 text-right tabular text-emerald-700">{t.settled}</td>
-                    <td className="px-4 py-3 text-right tabular text-amber-700">{t.unsettled}</td>
                     <td className="px-4 py-3 text-right tabular text-muted">
                       {t.kind === "vikar" ? "—" : t.absenceDays}
                     </td>

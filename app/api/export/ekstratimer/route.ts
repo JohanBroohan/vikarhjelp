@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
 
   const rows = await fetchCoverRows(range, coverer);
 
-  const header = ["Navn", "Dato", "Time", "Klasse", "Fag", "Dekket for", "Oppgjort"];
+  const header = ["Navn", "Dato", "Time", "Klasse", "Fag", "Dekket for"];
   const lines = [header.map(csvCell).join(",")];
   for (const r of rows) {
     lines.push(
@@ -44,7 +44,6 @@ export async function GET(request: NextRequest) {
         csvCell(r.classGroup ?? ""),
         csvCell(r.subject ?? ""),
         csvCell(r.absentTeacherName),
-        csvCell(r.isSettled ? "Ja" : "Nei"),
       ].join(","),
     );
   }
