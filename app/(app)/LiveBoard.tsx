@@ -289,7 +289,9 @@ export function LiveBoard({
         </div>
       </Card>
 
-      <Legend />
+      <div className="mt-4">
+        <Legend />
+      </div>
     </div>
   );
 }

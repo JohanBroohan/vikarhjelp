@@ -3,7 +3,7 @@ import { getTodayBoard } from "@/lib/queries/board";
 import { todayISO, formatDayMonth } from "@/lib/format";
 import { Page, Card } from "@/components/ui";
 import { PhoneLink } from "@/components/PhoneLink";
-import { Pencil, CalendarDays } from "lucide-react";
+import { Pencil } from "lucide-react";
 import { LiveBoard } from "./LiveBoard";
 import { DayNav } from "./DayNav";
 
@@ -42,7 +42,11 @@ export default async function OversiktPage({
                     key={s.id}
                     className="relative space-y-0.5 border-b border-line/60 pb-3 pl-3 last:border-0 last:pb-0"
                   >
-                    <span className="absolute left-0 top-1/2 h-7 w-0.5 -translate-y-1/2 rounded-full bg-red-500" />
+                    <span
+                      className={`absolute left-0 top-1/2 w-0.5 -translate-y-1/2 rounded-full bg-red-500 ${
+                        s.range ? "h-11" : "h-7"
+                      }`}
+                    />
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-sm font-medium text-ink">{s.name}</span>
                       <Link
@@ -59,11 +63,8 @@ export default async function OversiktPage({
                       </Link>
                     </div>
                     {s.range && (
-                      <div className="flex items-center gap-1.5 text-xs font-medium text-amber-700">
-                        <CalendarDays className="h-3.5 w-3.5" strokeWidth={1.8} />
-                        <span>
-                          Borte {formatDayMonth(s.range.from)} – {formatDayMonth(s.range.to)}
-                        </span>
+                      <div className="text-xs font-medium text-amber-700">
+                        Borte {formatDayMonth(s.range.from)} – {formatDayMonth(s.range.to)}
                       </div>
                     )}
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs">
