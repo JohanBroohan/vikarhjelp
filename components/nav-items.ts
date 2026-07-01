@@ -1,27 +1,27 @@
+import type { ComponentType, SVGProps } from "react";
+import { Settings } from "lucide-react";
 import {
-  Home,
-  CalendarPlus,
-  Users,
-  CalendarDays,
-  UserCheck,
-  ClipboardList,
-  Settings,
-  type LucideIcon,
-} from "lucide-react";
+  OversiktIcon,
+  FravaerIcon,
+  AnsatteIcon,
+  TimeplanIcon,
+  VikarerIcon,
+  HistorikkIcon,
+} from "./nav-icons";
 
 export interface NavItem {
   href: string;
   label: string;
-  icon: LucideIcon;
+  icon: ComponentType<SVGProps<SVGSVGElement>>;
 }
 
 export const NAV_ITEMS: NavItem[] = [
-  { href: "/", label: "Oversikt", icon: Home },
-  { href: "/fravaer", label: "Registrer fravær", icon: CalendarPlus },
-  { href: "/laerere", label: "Ansatte", icon: Users },
-  { href: "/timeplan", label: "Timeplan", icon: CalendarDays },
-  { href: "/vikarer", label: "Vikarer", icon: UserCheck },
-  { href: "/ekstratimer", label: "Historikk", icon: ClipboardList },
+  { href: "/", label: "Oversikt", icon: OversiktIcon },
+  { href: "/fravaer", label: "Registrer fravær", icon: FravaerIcon },
+  { href: "/laerere", label: "Ansatte", icon: AnsatteIcon },
+  { href: "/timeplan", label: "Timeplan", icon: TimeplanIcon },
+  { href: "/vikarer", label: "Vikarer", icon: VikarerIcon },
+  { href: "/ekstratimer", label: "Historikk", icon: HistorikkIcon },
 ];
 
 // Settings sits separately at the bottom of the sidebar (above "Logg ut").

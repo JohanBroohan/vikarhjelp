@@ -57,7 +57,7 @@ export function Sidebar() {
 
   return (
     <aside
-      className={`flex h-full shrink-0 flex-col border-r border-line bg-surface transition-[width] duration-200 ${
+      className={`flex h-full shrink-0 flex-col border-r border-line bg-[#fbfbf9] transition-[width] duration-200 dark:bg-surface ${
         collapsed ? "w-16" : "w-60"
       }`}
     >
@@ -84,10 +84,10 @@ export function Sidebar() {
               href={item.href}
               title={collapsed ? item.label : undefined}
               className={`flex items-center rounded-xl py-2 text-sm font-medium transition ${
-                collapsed ? "justify-center px-0" : "gap-2.5 px-3"
+                collapsed ? "justify-center px-0" : "gap-2 px-3"
               } ${active ? ACTIVE : INACTIVE}`}
             >
-              <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={1.8} />
+              <Icon className="h-3.5 w-3.5 shrink-0" />
               {!collapsed && item.label}
             </Link>
           );
