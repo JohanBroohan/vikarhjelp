@@ -1,7 +1,11 @@
 import { type NextRequest } from "next/server";
 import { getUser } from "@/lib/auth";
 import { todayISO } from "@/lib/format";
-import { absenceTypeLabel } from "@/lib/constants";
+import {
+  absenceTypeLabel,
+  SCHOOL_DAY_START,
+  SCHOOL_DAY_END,
+} from "@/lib/constants";
 import { resolveRange } from "@/lib/reports";
 import { fetchCoverRows, fetchAbsenceExportRows } from "@/lib/queries/extraHours";
 
@@ -9,6 +13,18 @@ import { fetchCoverRows, fetchAbsenceExportRows } from "@/lib/queries/extraHours
 function csvCell(value: string | number): string {
   const s = String(value);
   return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+/** Minutes since midnight for an "HH:MM" clock string. */
+function toMin(hhmm: string): number {
+  const [h, m] = hhmm.split(":").map(Number);
+  return h * 60 + m;
+}
+
+/** Duration in hours between two "HH:MM" times, Norwegian comma decimals. */
+function durationHours(start: string, end: string): string {
+  const hours = Math.max(0, toMin(end) - toMin(start)) / 60;
+  return (Math.round(hours * 100) / 100).toString().replace(".", ",");
 }
 
 export async function GET(request: NextRequest) {
@@ -50,6 +66,8 @@ export async function GET(request: NextRequest) {
     date: string;
     type: string;
     time: string;
+    klokkeslett: string;
+    varighet: string;
     klasse: string;
     fag: string;
     dekketFor: string;
@@ -63,23 +81,31 @@ export async function GET(request: NextRequest) {
       date: c.date,
       type: "Vikartime",
       time: String(c.period),
+      klokkeslett: `${c.start}–${c.end}`,
+      varighet: durationHours(c.start, c.end),
       klasse: c.classGroup ?? "",
       fag: c.subject ?? "",
       dekketFor: c.absentTeacherName,
       fravaerstype: "",
       tidsrom: "",
     })),
-    ...absences.map((a) => ({
-      name: a.name,
-      date: a.date,
-      type: "Fravær",
-      time: "",
-      klasse: "",
-      fag: "",
-      dekketFor: "",
-      fravaerstype: absenceTypeLabel(a.absenceType),
-      tidsrom: a.window ? `${a.window.from}–${a.window.to}` : "Hele dagen",
-    })),
+    ...absences.map((a) => {
+      const from = a.window?.from ?? SCHOOL_DAY_START;
+      const to = a.window?.to ?? SCHOOL_DAY_END;
+      return {
+        name: a.name,
+        date: a.date,
+        type: "Fravær",
+        time: "",
+        klokkeslett: `${from}–${to}`,
+        varighet: durationHours(from, to),
+        klasse: "",
+        fag: "",
+        dekketFor: "",
+        fravaerstype: absenceTypeLabel(a.absenceType),
+        tidsrom: a.window ? `${a.window.from}–${a.window.to}` : "Hele dagen",
+      };
+    }),
   ].sort((x, y) =>
     x.date < y.date ? 1 : x.date > y.date ? -1 : x.name.localeCompare(y.name, "nb"),
   );
@@ -89,6 +115,8 @@ export async function GET(request: NextRequest) {
     "Dato",
     "Type",
     "Time",
+    "Klokkeslett",
+    "Varighet",
     "Klasse",
     "Fag",
     "Dekket for",
@@ -103,6 +131,8 @@ export async function GET(request: NextRequest) {
         r.date,
         r.type,
         r.time,
+        r.klokkeslett,
+        r.varighet,
         r.klasse,
         r.fag,
         r.dekketFor,

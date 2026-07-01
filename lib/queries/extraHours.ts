@@ -6,6 +6,7 @@
 // (covering_vikar_id). Co-teacher covers log no extra hours for anyone.
 
 import { createClient } from "@/lib/supabase/server";
+import { lessonClock } from "@/lib/constants";
 import type { DateRange } from "@/lib/reports";
 import type { Absence, CoverageAssignment, Lesson } from "@/lib/database.types";
 
@@ -15,6 +16,9 @@ export interface CoverRow {
   id: string;
   date: string;
   period: number;
+  /** Lesson clock times ("HH:MM"), from the lesson or its period default. */
+  start: string;
+  end: string;
   classGroup: string | null;
   subject: string | null;
   room: string | null;
@@ -109,10 +113,13 @@ export async function fetchCoverRows(
         return null; // not actually covered (pending/uncovered)
       }
 
+      const clock = lessonClock(lesson);
       return {
         id: c.id,
         date: c.date,
         period: lesson.period,
+        start: clock.start,
+        end: clock.end,
         classGroup: lesson.class_group,
         subject: lesson.subject,
         room: lesson.room,
