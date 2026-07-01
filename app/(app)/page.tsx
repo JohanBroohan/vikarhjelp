@@ -35,15 +35,15 @@ export default async function OversiktPage({
             is no headline, so no offset. */}
         <div className={`space-y-4 ${isToday ? "xl:mt-12" : ""}`}>
           <Card className="p-4">
-            <h2 className="mb-4 text-base font-medium text-ink">Fravær i dag</h2>
+            <h2 className="mb-4 text-base font-normal text-ink">Fravær i dag</h2>
             {board.sick.length === 0 ? (
               <p className="text-sm text-muted">Ingen fravær registrert i dag.</p>
             ) : (
-              <ul className="space-y-2.5">
+              <ul className="space-y-3">
                 {board.sick.map((s) => (
                   <li
                     key={s.id}
-                    className="relative space-y-[3px] border-b border-line/60 pb-2.5 pl-3 last:border-0 last:pb-0"
+                    className="relative space-y-0.5 border-b border-line/60 pb-3 pl-3 last:border-0 last:pb-0"
                   >
                     <span className="absolute left-0 top-1/2 h-7 w-0.5 -translate-y-1/2 rounded-full bg-red-500" />
                     <div className="flex items-center justify-between gap-2">
@@ -56,7 +56,7 @@ export default async function OversiktPage({
                         }
                         aria-label={`Endre fravær for ${s.name}`}
                         title="Endre fravær"
-                        className="rounded-md p-1 text-muted transition hover:bg-canvas hover:text-brand-700"
+                        className="rounded-md p-1 text-[#527dd8] transition hover:bg-canvas"
                       >
                         <Pencil className="h-3.5 w-3.5" strokeWidth={1.8} />
                       </Link>
@@ -89,13 +89,13 @@ export default async function OversiktPage({
           </Card>
 
           <Card className="p-4">
-            <h2 className="mb-4 text-base font-medium text-ink">
+            <h2 className="mb-4 text-base font-normal text-ink">
               Vikarer på skolen i dag
             </h2>
             {board.vikars.length === 0 ? (
               <p className="text-sm text-muted">Ingen vikarer i dag.</p>
             ) : (
-              <ul className="space-y-2.5">
+              <ul className="space-y-3">
                 {board.vikars.map((v) => (
                   <li
                     key={v.id}
