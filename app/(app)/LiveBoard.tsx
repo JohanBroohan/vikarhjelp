@@ -187,45 +187,8 @@ export function LiveBoard({
 
   const nowInRange = isToday && now != null && now >= startMin && now <= endMin;
 
-  // Live headline counts (teachers only).
-  let inClass = 0;
-  let busy = 0;
-  let free = 0;
-  let away = 0;
-  if (now != null) {
-    for (const t of board.teachers) {
-      if (t.role === "vikar") continue;
-      const a = activityNow(t, now);
-      if (a.state === "lesson") {
-        if (a.lesson.isClass) inClass += 1;
-        else busy += 1;
-      } else if (a.state === "borte") away += 1;
-      else free += 1;
-    }
-  }
-
   return (
-    <div className="space-y-3">
-      {/* Headline — live clock + counts (only meaningful for today) */}
-      {isToday && (
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-baseline gap-3">
-            <span className="tabular text-3xl font-medium text-ink">
-              {now == null ? "––:––" : fmtClock(now)}
-            </span>
-            {now != null && (
-              <span className="text-sm text-muted">
-                <b className="text-emerald-700">{inClass}</b> i klasse ·{" "}
-                <b className="text-ink">{free}</b> ledige ·{" "}
-                <b className="text-ink">{busy}</b> opptatt ·{" "}
-                <b className="text-red-700">{away}</b> borte
-              </span>
-            )}
-          </div>
-          <span className="text-xs text-muted">Oppdateres automatisk</span>
-        </div>
-      )}
-
+    <div>
       <Card className="overflow-hidden">
         <div className="flex">
           {/* Left: teacher names + live status */}
