@@ -15,10 +15,10 @@ export function ImportTabs({
 
   return (
     <div className="space-y-5">
-      <div className="inline-flex rounded-lg bg-canvas p-0.5 ring-1 ring-line">
+      <div className="inline-flex rounded-xl bg-canvas p-0.5 ring-1 ring-line">
         <button
           onClick={() => setMode("grid")}
-          className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
+          className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
             mode === "grid" ? "bg-surface text-ink shadow-sm" : "text-muted hover:text-ink"
           }`}
         >
@@ -26,7 +26,7 @@ export function ImportTabs({
         </button>
         <button
           onClick={() => setMode("list")}
-          className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
+          className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
             mode === "list" ? "bg-surface text-ink shadow-sm" : "text-muted hover:text-ink"
           }`}
         >

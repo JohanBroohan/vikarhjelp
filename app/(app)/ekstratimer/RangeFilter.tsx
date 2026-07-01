@@ -22,12 +22,12 @@ export function RangeFilter({ range }: { range: DateRange }) {
 
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div className="inline-flex rounded-lg bg-canvas p-0.5 ring-1 ring-line">
+      <div className="inline-flex rounded-xl bg-canvas p-0.5 ring-1 ring-line">
         {PRESETS.map((p) => (
           <button
             key={p}
             onClick={() => go(p, range.from ?? undefined, range.to ?? undefined)}
-            className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
+            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
               range.preset === p ? "bg-surface text-ink shadow-sm" : "text-muted hover:text-ink"
             }`}
           >

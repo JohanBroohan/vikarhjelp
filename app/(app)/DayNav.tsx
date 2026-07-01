@@ -51,7 +51,7 @@ export function DayNav({ date, isToday }: { date: string; isToday: boolean }) {
       {!isToday && (
         <button
           onClick={() => go(todayISO())}
-          className="rounded-lg px-3 py-1.5 text-sm font-medium text-brand-700 ring-1 ring-line transition hover:bg-brand-50"
+          className="rounded-xl px-3 py-1.5 text-sm font-medium text-brand-700 ring-1 ring-line transition hover:bg-brand-50"
         >
           I dag
         </button>

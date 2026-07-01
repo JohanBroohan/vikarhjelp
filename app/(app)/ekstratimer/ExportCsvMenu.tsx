@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
 
 const BTN =
-  "rounded-lg px-3.5 py-2 text-sm font-medium text-brand-700 ring-1 ring-line hover:bg-brand-50";
+  "rounded-xl px-3.5 py-2 text-sm font-medium text-brand-700 ring-1 ring-line hover:bg-brand-50";
 
 const OPTIONS = [
   { what: "begge", label: "Fravær og vikartimer" },

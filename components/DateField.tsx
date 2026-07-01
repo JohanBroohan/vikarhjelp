@@ -111,7 +111,7 @@ export function DateField({
         <button
           type="button"
           onClick={toggleOpen}
-          className="flex w-full items-center justify-between rounded-lg border border-line bg-surface px-3 py-2 text-left text-sm text-ink outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+          className="flex w-full items-center justify-between rounded-xl border border-line bg-surface px-3 py-2 text-left text-sm text-ink outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
         >
           <span>{value ? capitalize(formatDateLong(value)) : "Velg dato …"}</span>
           <svg
@@ -134,7 +134,7 @@ export function DateField({
               type="button"
               onClick={prevMonth}
               aria-label="Forrige måned"
-              className="rounded-lg p-1.5 text-muted hover:bg-canvas hover:text-ink"
+              className="rounded-xl p-1.5 text-muted hover:bg-canvas hover:text-ink"
             >
               <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
             </button>
@@ -145,7 +145,7 @@ export function DateField({
               type="button"
               onClick={nextMonth}
               aria-label="Neste måned"
-              className="rounded-lg p-1.5 text-muted hover:bg-canvas hover:text-ink"
+              className="rounded-xl p-1.5 text-muted hover:bg-canvas hover:text-ink"
             >
               <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
             </button>
@@ -171,7 +171,7 @@ export function DateField({
                     onChange(iso);
                     setOpen(false);
                   }}
-                  className={`tabular h-8 rounded-lg text-sm transition ${
+                  className={`tabular h-8 rounded-xl text-sm transition ${
                     isSelected
                       ? "bg-brand-600 font-medium text-white"
                       : isToday

@@ -126,7 +126,7 @@ export function GridImportClient({
       </Card>
 
       {error && (
-        <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-red-600/20">
+        <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-red-600/20">
           {error}
         </p>
       )}
@@ -150,7 +150,7 @@ export function GridImportClient({
           </div>
 
           {result.unmatchedTimes.length > 0 && (
-            <p className="rounded-lg bg-amber-50 px-4 py-2.5 text-sm text-amber-800 ring-1 ring-amber-600/15">
+            <p className="rounded-xl bg-amber-50 px-4 py-2.5 text-sm text-amber-800 ring-1 ring-amber-600/15">
               Noen tidsrader samsvarer ikke med skolens faste tider:{" "}
               {result.unmatchedTimes.join(", ")}. De importeres likevel — sjekk
               tidene under «Timeplan».

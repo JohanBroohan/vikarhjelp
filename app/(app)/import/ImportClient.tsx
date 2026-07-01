@@ -78,7 +78,7 @@ export function ImportClient() {
           <div className="flex items-center gap-2">
             <a
               href="/api/template"
-              className="rounded-lg px-3.5 py-2 text-sm font-medium text-brand-700 ring-1 ring-line hover:bg-brand-50"
+              className="rounded-xl px-3.5 py-2 text-sm font-medium text-brand-700 ring-1 ring-line hover:bg-brand-50"
             >
               Last ned mal
             </a>
@@ -102,7 +102,7 @@ export function ImportClient() {
       </Card>
 
       {error && (
-        <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-red-600/20">
+        <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-red-600/20">
           {error}
         </p>
       )}

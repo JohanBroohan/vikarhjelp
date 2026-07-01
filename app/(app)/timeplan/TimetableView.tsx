@@ -84,7 +84,7 @@ export function TimetableView({
           <button
             onClick={() => setWeekStart((w) => addDaysISO(w, -7))}
             aria-label="Forrige uke"
-            className="rounded-lg p-2 text-muted ring-1 ring-line transition hover:bg-canvas hover:text-ink"
+            className="rounded-xl p-2 text-muted ring-1 ring-line transition hover:bg-canvas hover:text-ink"
           >
             <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
           </button>
@@ -95,14 +95,14 @@ export function TimetableView({
           <button
             onClick={() => setWeekStart((w) => addDaysISO(w, 7))}
             aria-label="Neste uke"
-            className="rounded-lg p-2 text-muted ring-1 ring-line transition hover:bg-canvas hover:text-ink"
+            className="rounded-xl p-2 text-muted ring-1 ring-line transition hover:bg-canvas hover:text-ink"
           >
             <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
           </button>
           {weekStart !== thisWeek && (
             <button
               onClick={() => setWeekStart(thisWeek)}
-              className="rounded-lg px-3 py-2 text-sm font-medium text-brand-700 ring-1 ring-line transition hover:bg-brand-50"
+              className="rounded-xl px-3 py-2 text-sm font-medium text-brand-700 ring-1 ring-line transition hover:bg-brand-50"
             >
               Denne uka
             </button>

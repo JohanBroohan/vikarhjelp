@@ -63,7 +63,7 @@ export function Sidebar() {
     >
       {/* Brand */}
       <div className={`flex items-center py-5 ${collapsed ? "justify-center px-0" : "gap-2.5 px-5"}`}>
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-600 text-sm font-bold text-white">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-brand-600 text-sm font-bold text-white">
           V
         </div>
         {!collapsed && (
@@ -99,7 +99,7 @@ export function Sidebar() {
         <button
           onClick={toggle}
           title={collapsed ? "Vis meny" : "Skjul meny"}
-          className={`flex w-full items-center rounded-lg py-2 text-sm font-medium text-muted transition hover:bg-canvas hover:text-ink ${
+          className={`flex w-full items-center rounded-xl py-2 text-sm font-medium text-muted transition hover:bg-canvas hover:text-ink ${
             collapsed ? "justify-center px-0" : "gap-3 px-3"
           }`}
         >
@@ -113,7 +113,7 @@ export function Sidebar() {
         <button
           onClick={toggleTheme}
           title={collapsed ? (dark ? "Lyst tema" : "Mørkt tema") : undefined}
-          className={`flex w-full items-center rounded-lg py-2 text-sm font-medium text-muted transition hover:bg-canvas hover:text-ink ${
+          className={`flex w-full items-center rounded-xl py-2 text-sm font-medium text-muted transition hover:bg-canvas hover:text-ink ${
             collapsed ? "justify-center px-0" : "gap-3 px-3"
           }`}
         >
@@ -128,7 +128,7 @@ export function Sidebar() {
         <Link
           href={SETTINGS_ITEM.href}
           title={collapsed ? SETTINGS_ITEM.label : undefined}
-          className={`flex w-full items-center rounded-lg py-2 text-sm font-medium transition ${
+          className={`flex w-full items-center rounded-xl py-2 text-sm font-medium transition ${
             collapsed ? "justify-center px-0" : "gap-3 px-3"
           } ${isNavActive(pathname, SETTINGS_ITEM.href) ? ACTIVE : INACTIVE}`}
         >
@@ -140,7 +140,7 @@ export function Sidebar() {
           <button
             type="submit"
             title="Logg ut"
-            className={`flex w-full items-center rounded-lg py-2 text-sm font-medium text-muted transition hover:bg-canvas hover:text-ink ${
+            className={`flex w-full items-center rounded-xl py-2 text-sm font-medium text-muted transition hover:bg-canvas hover:text-ink ${
               collapsed ? "justify-center px-0" : "gap-3 px-3"
             }`}
           >

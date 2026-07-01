@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createSchool, acceptInvite } from "@/lib/actions/members";
 
 const INPUT =
-  "w-full rounded-lg border border-line bg-surface px-3 py-2.5 text-ink outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20";
+  "w-full rounded-xl border border-line bg-surface px-3 py-2.5 text-ink outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20";
 
 export function OnboardingClient({
   invite,
@@ -83,12 +83,12 @@ export function OnboardingClient({
         </p>
         {nameFields}
         {error && (
-          <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
+          <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
         )}
         <button
           type="submit"
           disabled={pending}
-          className="w-full rounded-lg bg-brand-600 px-4 py-2.5 font-medium text-white transition hover:bg-brand-700 disabled:opacity-60"
+          className="w-full rounded-xl bg-brand-600 px-4 py-2.5 font-medium text-white transition hover:bg-brand-700 disabled:opacity-60"
         >
           {pending ? "Blir med …" : `Bli med i ${invite.schoolName}`}
         </button>
@@ -113,12 +113,12 @@ export function OnboardingClient({
         />
       </div>
       {error && (
-        <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
+        <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
       )}
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-lg bg-brand-600 px-4 py-2.5 font-medium text-white transition hover:bg-brand-700 disabled:opacity-60"
+        className="w-full rounded-xl bg-brand-600 px-4 py-2.5 font-medium text-white transition hover:bg-brand-700 disabled:opacity-60"
       >
         {pending ? "Oppretter …" : "Opprett skole"}
       </button>

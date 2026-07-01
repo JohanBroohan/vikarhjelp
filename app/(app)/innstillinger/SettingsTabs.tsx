@@ -47,12 +47,12 @@ export function SettingsTabs({
 
   return (
     <div className="space-y-5">
-      <div className="inline-flex rounded-lg bg-canvas p-0.5 ring-1 ring-line">
+      <div className="inline-flex rounded-xl bg-canvas p-0.5 ring-1 ring-line">
         {TABS.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`rounded-md px-3.5 py-1.5 text-sm font-medium transition ${
+            className={`rounded-lg px-3.5 py-1.5 text-sm font-medium transition ${
               tab === t.key ? "bg-surface text-ink shadow-sm" : "text-muted hover:text-ink"
             }`}
           >
@@ -197,7 +197,7 @@ function AccountSection({
         <form action="/auth/signout" method="post">
           <button
             type="submit"
-            className="rounded-lg px-3.5 py-2 text-sm font-medium text-red-700 ring-1 ring-red-200 transition hover:bg-red-50"
+            className="rounded-xl px-3.5 py-2 text-sm font-medium text-red-700 ring-1 ring-red-200 transition hover:bg-red-50"
           >
             Logg ut
           </button>
@@ -235,7 +235,7 @@ function BillingSection({ schoolName }: { schoolName: string }) {
         </div>
         <button
           disabled
-          className="mt-4 cursor-not-allowed rounded-lg bg-brand-600/60 px-3.5 py-2 text-sm font-medium text-white"
+          className="mt-4 cursor-not-allowed rounded-xl bg-brand-600/60 px-3.5 py-2 text-sm font-medium text-white"
           title="Kommer snart"
         >
           Administrer abonnement

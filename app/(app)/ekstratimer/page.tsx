@@ -64,7 +64,7 @@ export default async function ExtraHoursPage({
                     <td className="px-4 py-3 text-right">
                       <Link
                         href={`/ekstratimer/${t.id}?${query}${t.kind === "vikar" ? "&kind=vikar" : ""}`}
-                        className="rounded-lg px-3 py-1.5 text-sm font-medium text-brand-700 hover:bg-brand-50"
+                        className="rounded-xl px-3 py-1.5 text-sm font-medium text-brand-700 hover:bg-brand-50"
                       >
                         Se detaljer
                       </Link>

@@ -12,7 +12,7 @@ export function MobileNav() {
     <header className="border-b border-line bg-surface md:hidden">
       <div className="flex items-center justify-between px-4 py-3">
         <Link href="/" className="flex items-center gap-2">
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-600 text-xs font-bold text-white">
+          <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-brand-600 text-xs font-bold text-white">
             V
           </span>
           <span className="font-medium text-ink">Vikarhjelp</span>

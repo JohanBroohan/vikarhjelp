@@ -58,7 +58,7 @@ export function SetPasswordForm() {
             autoFocus
             value={firstName}
             onChange={(e) => setFirstName(e.target.value)}
-            className="w-full rounded-lg border border-line bg-surface px-3 py-2.5 text-ink outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+            className="w-full rounded-xl border border-line bg-surface px-3 py-2.5 text-ink outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
           />
         </div>
         <div className="space-y-1.5">
@@ -70,7 +70,7 @@ export function SetPasswordForm() {
             required
             value={lastName}
             onChange={(e) => setLastName(e.target.value)}
-            className="w-full rounded-lg border border-line bg-surface px-3 py-2.5 text-ink outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+            className="w-full rounded-xl border border-line bg-surface px-3 py-2.5 text-ink outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
           />
         </div>
       </div>
@@ -82,7 +82,7 @@ export function SetPasswordForm() {
           id="role"
           value={role}
           onChange={(e) => setRole(e.target.value)}
-          className="w-full rounded-lg border border-line bg-surface px-3 py-2.5 text-ink outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+          className="w-full rounded-xl border border-line bg-surface px-3 py-2.5 text-ink outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
         >
           {EMPLOYEE_ROLES.map((r) => (
             <option key={r.value} value={r.value}>
@@ -102,7 +102,7 @@ export function SetPasswordForm() {
           required
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full rounded-lg border border-line bg-surface px-3 py-2.5 text-ink outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+          className="w-full rounded-xl border border-line bg-surface px-3 py-2.5 text-ink outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
           placeholder="Minst 6 tegn"
         />
       </div>
@@ -117,13 +117,13 @@ export function SetPasswordForm() {
           required
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}
-          className="w-full rounded-lg border border-line bg-surface px-3 py-2.5 text-ink outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+          className="w-full rounded-xl border border-line bg-surface px-3 py-2.5 text-ink outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
           placeholder="Gjenta passordet"
         />
       </div>
 
       {error && (
-        <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 ring-1 ring-red-600/20">
+        <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700 ring-1 ring-red-600/20">
           {error}
         </p>
       )}
@@ -131,7 +131,7 @@ export function SetPasswordForm() {
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-lg bg-brand-600 px-4 py-2.5 font-medium text-white transition hover:bg-brand-700 disabled:opacity-60"
+        className="w-full rounded-xl bg-brand-600 px-4 py-2.5 font-medium text-white transition hover:bg-brand-700 disabled:opacity-60"
       >
         {pending ? "Lagrer …" : "Fullfør og gå inn"}
       </button>

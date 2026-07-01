@@ -92,7 +92,7 @@ const VARIANT: Record<Variant, string> = {
 };
 
 const BUTTON_BASE =
-  "inline-flex items-center justify-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-medium transition disabled:cursor-not-allowed";
+  "inline-flex items-center justify-center gap-1.5 rounded-xl px-3.5 py-2 text-sm font-medium transition disabled:cursor-not-allowed";
 
 export function Button({
   variant = "primary",
@@ -135,7 +135,7 @@ export function Field({
 }
 
 const INPUT_CLASS =
-  "w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20";
+  "w-full rounded-xl border border-line bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20";
 
 export function Input(props: ComponentProps<"input">) {
   return <input {...props} className={`${INPUT_CLASS} ${props.className ?? ""}`} />;

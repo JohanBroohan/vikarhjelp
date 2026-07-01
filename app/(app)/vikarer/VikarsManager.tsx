@@ -216,7 +216,7 @@ function VikarFormModal({
                   key={d}
                   type="button"
                   onClick={() => toggleDay(d)}
-                  className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+                  className={`rounded-xl px-3 py-1.5 text-sm font-medium transition ${
                     active
                       ? "bg-ink text-white"
                       : "text-muted ring-1 ring-line hover:bg-canvas"
@@ -233,7 +233,7 @@ function VikarFormModal({
           </span>
         </div>
 
-        {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+        {error && <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
         <div className="flex justify-end gap-2 pt-2">
           <Button type="button" variant="secondary" onClick={onClose}>
             Avbryt

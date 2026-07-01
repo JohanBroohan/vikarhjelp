@@ -109,7 +109,7 @@ export function TeachersManager({ teachers }: { teachers: Teacher[] }) {
                       <div className="flex items-center justify-end gap-1.5">
                         <Link
                           href={`/laerere/${t.id}`}
-                          className="rounded-lg px-2.5 py-1.5 text-sm font-medium text-brand-700 hover:bg-brand-50"
+                          className="rounded-xl px-2.5 py-1.5 text-sm font-medium text-brand-700 hover:bg-brand-50"
                         >
                           Timeplan
                         </Link>
@@ -223,7 +223,7 @@ function TeacherFormModal({
           </Field>
         </div>
         {error && (
-          <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
+          <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
         )}
         <div className="flex justify-end gap-2 pt-2">
           <Button type="button" variant="secondary" onClick={onClose}>

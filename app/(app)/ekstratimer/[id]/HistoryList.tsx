@@ -46,12 +46,12 @@ export function HistoryList({
         <p className="text-sm text-muted">{entries.length} oppføringer</p>
         {/* The filter only makes sense for staff who can be absent (not vikars). */}
         {hasAbsences && (
-          <div className="inline-flex rounded-lg bg-canvas p-0.5 ring-1 ring-line">
+          <div className="inline-flex rounded-xl bg-canvas p-0.5 ring-1 ring-line">
             {TABS.map((t) => (
               <button
                 key={t.key}
                 onClick={() => setFilter(t.key)}
-                className={`rounded-md px-3 py-1 text-sm font-medium transition ${
+                className={`rounded-lg px-3 py-1 text-sm font-medium transition ${
                   filter === t.key
                     ? "bg-surface text-ink shadow-sm"
                     : "text-muted hover:text-ink"

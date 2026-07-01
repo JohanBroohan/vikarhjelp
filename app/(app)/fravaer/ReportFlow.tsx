@@ -53,7 +53,7 @@ function TimeSelect({
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="tabular w-24 rounded-lg border border-line bg-surface px-2 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+      className="tabular w-24 rounded-xl border border-line bg-surface px-2 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
     >
       <option value="">—</option>
       {options.map((o) => (
@@ -399,11 +399,11 @@ export function ReportFlow({
         <div className="mt-4 border-t border-line pt-4">
           <p className="mb-2 text-sm font-medium text-ink">Fraværet gjelder</p>
 
-          <div className="inline-flex rounded-lg bg-canvas p-0.5 ring-1 ring-line">
+          <div className="inline-flex rounded-xl bg-canvas p-0.5 ring-1 ring-line">
             <button
               type="button"
               onClick={() => setMode(false)}
-              className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
+              className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
                 !rangeMode ? "bg-surface text-ink shadow-sm" : "text-muted hover:text-ink"
               }`}
             >
@@ -412,7 +412,7 @@ export function ReportFlow({
             <button
               type="button"
               onClick={() => setMode(true)}
-              className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
+              className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
                 rangeMode ? "bg-surface text-ink shadow-sm" : "text-muted hover:text-ink"
               }`}
             >
@@ -457,7 +457,7 @@ export function ReportFlow({
       </Card>
 
       {error && (
-        <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-red-600/20">
+        <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-red-600/20">
           {error}
         </p>
       )}
@@ -485,11 +485,11 @@ export function ReportFlow({
 
           <Card className="p-5">
             <p className="mb-2 text-sm font-medium text-ink">Hvem dekker?</p>
-            <div className="inline-flex rounded-lg bg-canvas p-0.5 ring-1 ring-line">
+            <div className="inline-flex rounded-xl bg-canvas p-0.5 ring-1 ring-line">
               <button
                 type="button"
                 onClick={() => setCoverMode("single")}
-                className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
+                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
                   coverMode === "single"
                     ? "bg-surface text-ink shadow-sm"
                     : "text-muted hover:text-ink"
@@ -500,7 +500,7 @@ export function ReportFlow({
               <button
                 type="button"
                 onClick={() => setCoverMode("perDay")}
-                className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
+                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
                   coverMode === "perDay"
                     ? "bg-surface text-ink shadow-sm"
                     : "text-muted hover:text-ink"
@@ -661,7 +661,7 @@ export function ReportFlow({
           {data && visibleLessons.length > 0 && (
             <>
               {hasExisting && (
-                <p className="rounded-lg bg-brand-50 px-4 py-2.5 text-sm text-brand-800 ring-1 ring-brand-600/15">
+                <p className="rounded-xl bg-brand-50 px-4 py-2.5 text-sm text-brand-800 ring-1 ring-brand-600/15">
                   Dette fraværet er allerede registrert. Du redigerer en eksisterende dag.
                 </p>
               )}
@@ -772,7 +772,7 @@ function LessonCard({
           {kind !== "coteacher" && (
             <div className="space-y-3">
               {lc.needsVikar ? (
-                <p className="rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-700 ring-1 ring-red-600/20">
+                <p className="rounded-xl bg-red-50 px-3 py-2 text-sm font-medium text-red-700 ring-1 ring-red-600/20">
                   Ingen lærer er ledig denne timen — ring en vikar.
                 </p>
               ) : (
@@ -919,7 +919,7 @@ function CoTeacherPrompt({
   onAnswer: (needsVikar: boolean) => void;
 }) {
   return (
-    <div className="mb-4 rounded-lg bg-sky-50 p-3 ring-1 ring-sky-600/15">
+    <div className="mb-4 rounded-xl bg-sky-50 p-3 ring-1 ring-sky-600/15">
       <p className="text-sm text-sky-900">
         {pluralTeachers(names.length)} er fortsatt til stede: {names.join(", ")}.
       </p>
@@ -929,7 +929,7 @@ function CoTeacherPrompt({
         </span>
         <button
           onClick={() => onAnswer(false)}
-          className={`rounded-lg px-3 py-1 text-sm font-medium transition ${
+          className={`rounded-xl px-3 py-1 text-sm font-medium transition ${
             !needsVikar ? "bg-sky-600 text-white" : "bg-surface text-sky-900 ring-1 ring-sky-600/30"
           }`}
         >
@@ -937,7 +937,7 @@ function CoTeacherPrompt({
         </button>
         <button
           onClick={() => onAnswer(true)}
-          className={`rounded-lg px-3 py-1 text-sm font-medium transition ${
+          className={`rounded-xl px-3 py-1 text-sm font-medium transition ${
             needsVikar ? "bg-sky-600 text-white" : "bg-surface text-sky-900 ring-1 ring-sky-600/30"
           }`}
         >
@@ -960,7 +960,7 @@ function OptionRow({
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm transition ${
+      className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-left text-sm transition ${
         selected
           ? "border-brand-500 bg-brand-50 ring-1 ring-brand-500"
           : "border-line bg-surface hover:bg-canvas"
@@ -983,7 +983,7 @@ function MiniToggle({
   return (
     <button
       onClick={onClick}
-      className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+      className={`rounded-xl px-3 py-1.5 text-sm font-medium transition ${
         active ? "bg-ink text-white" : "text-muted ring-1 ring-line hover:bg-canvas"
       }`}
     >
@@ -1033,7 +1033,7 @@ function PerDayPlanner({
   return (
     <div className="space-y-4">
       {daysWithLessons.map((day) => (
-        <div key={day.date} className="overflow-hidden rounded-lg border border-line">
+        <div key={day.date} className="overflow-hidden rounded-xl border border-line">
           <div className="border-b border-line bg-canvas/50 px-3 py-2 text-sm font-medium text-ink">
             {capitalize(formatDateLong(day.date))}
           </div>
@@ -1065,7 +1065,7 @@ function PerDayPlanner({
                   <select
                     value={selVal}
                     onChange={(e) => onChange(key, e.target.value)}
-                    className="w-44 shrink-0 rounded-lg border border-line bg-surface px-2 py-1.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+                    className="w-44 shrink-0 rounded-xl border border-line bg-surface px-2 py-1.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
                   >
                     <option value="">Ikke tildelt</option>
                     {teacherOpts.length > 0 && (
