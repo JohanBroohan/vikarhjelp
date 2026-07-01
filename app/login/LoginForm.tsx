@@ -55,9 +55,17 @@ export function LoginForm({ next }: { next: string }) {
       </div>
 
       <div className="space-y-1.5">
-        <label htmlFor="password" className="block text-sm font-medium text-ink">
-          Passord
-        </label>
+        <div className="flex items-center justify-between">
+          <label htmlFor="password" className="block text-sm font-medium text-ink">
+            Passord
+          </label>
+          <Link
+            href="/glemt-passord"
+            className="text-sm font-medium text-brand-700 hover:underline"
+          >
+            Glemt passord?
+          </Link>
+        </div>
         <input
           id="password"
           type="password"
