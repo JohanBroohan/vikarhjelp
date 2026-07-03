@@ -65,7 +65,6 @@ export async function GET(request: NextRequest) {
     name: string;
     date: string;
     type: string;
-    time: string;
     klokkeslett: string;
     varighet: string;
     klasse: string;
@@ -80,7 +79,6 @@ export async function GET(request: NextRequest) {
       name: c.coveringName,
       date: c.date,
       type: "Vikartime",
-      time: String(c.period),
       klokkeslett: `${c.start}–${c.end}`,
       varighet: durationHours(c.start, c.end),
       klasse: c.classGroup ?? "",
@@ -96,7 +94,6 @@ export async function GET(request: NextRequest) {
         name: a.name,
         date: a.date,
         type: "Fravær",
-        time: "",
         klokkeslett: `${from}–${to}`,
         varighet: durationHours(from, to),
         klasse: "",
@@ -114,7 +111,6 @@ export async function GET(request: NextRequest) {
     "Navn",
     "Dato",
     "Type",
-    "Time",
     "Klokkeslett",
     "Varighet",
     "Klasse",
@@ -130,7 +126,6 @@ export async function GET(request: NextRequest) {
         r.name,
         formatDateNumeric(r.date),
         r.type,
-        r.time,
         r.klokkeslett,
         r.varighet,
         r.klasse,

@@ -107,7 +107,7 @@ export function HistoryList({
 
 function coverDetail(r: CoverRow): string {
   const cls = [r.subject, r.classGroup].filter(Boolean).join(" ");
-  return `${r.period}. time${cls ? ` · ${cls}` : ""} · dekket for ${r.absentTeacherName}`;
+  return `${cls ? `${cls} · ` : ""}dekket for ${r.absentTeacherName}`;
 }
 
 function absenceDetail(r: AbsenceRow): string {
