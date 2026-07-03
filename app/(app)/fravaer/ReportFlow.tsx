@@ -155,9 +155,11 @@ export function ReportFlow({
   const invalidRange = toDate < fromDate;
   const isMultiDay = toDate > fromDate;
 
-  // For a single day, the time window (null = whole day).
+  // The time window applies only in "Bestemt tidsrom". "Hele dagen" means the
+  // whole day (null) so nothing is clamped — early SFO/Tilsyn before 08:00 or
+  // activities after 16:00 are all included.
   const window =
-    fromTime || toTime
+    rangeMode && (fromTime || toTime)
       ? { from: fromTime || SCHOOL_DAY_START, to: toTime || SCHOOL_DAY_END }
       : null;
 
