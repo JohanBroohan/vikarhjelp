@@ -13,7 +13,7 @@ import {
   ABSENCE_TYPES,
   DEFAULT_ABSENCE_TYPE,
 } from "@/lib/constants";
-import { pluralTeachers, formatDateLong, capitalize, addDaysISO } from "@/lib/format";
+import { pluralTeachers, formatDateLong, capitalize, addDaysISO, todayISO } from "@/lib/format";
 import { weekdayFromISODate } from "@/lib/coverage";
 import { Button, Card, Field, Select } from "@/components/ui";
 import { DateField } from "@/components/DateField";
@@ -364,6 +364,28 @@ export function ReportFlow({
     });
   }
 
+  // "Avbryt" — clear the whole screen back to a fresh Registrer fravær.
+  function reset() {
+    const today = todayISO();
+    setTeacherId("");
+    setFromDate(today);
+    setToDate(today);
+    setFromTime("08:00");
+    setToTime("16:00");
+    setAbsenceType(DEFAULT_ABSENCE_TYPE);
+    setRangeMode(false);
+    setData(null);
+    setDecisions({});
+    setError(null);
+    setCoverMode("single");
+    setCoverChoice(null);
+    setRangePlan(null);
+    setRangeSel({});
+    setOnlyAvailable(false);
+    editPrefilled.current = false;
+    router.replace("/fravaer");
+  }
+
   const selectedTeacher = teachers.find((t) => t.id === teacherId) ?? null;
   const hasExisting = data && Object.keys(data.existing).length > 0;
   const counts = summarize(visibleLessons, decisions);
@@ -616,7 +638,7 @@ export function ReportFlow({
                   Slett fravær
                 </Button>
               )}
-              <Button variant="secondary" onClick={() => router.push("/")}>
+              <Button variant="secondary" onClick={reset}>
                 Avbryt
               </Button>
               <Button
@@ -697,8 +719,8 @@ export function ReportFlow({
                         Slett fravær
                       </Button>
                     )}
-                    <Button variant="secondary" onClick={() => router.push("/")}>
-                      Til oversikt
+                    <Button variant="secondary" onClick={reset}>
+                      Avbryt
                     </Button>
                     <Button onClick={save} disabled={saving}>
                       {saving ? "Lagrer …" : "Lagre dekning"}
@@ -884,7 +906,7 @@ function LessonCard({
                 </div>
               )}
 
-              {/* Leave uncovered / reset */}
+              {/* Leave uncovered */}
               <div className="flex flex-wrap gap-2 pt-1">
                 <MiniToggle
                   active={kind === "uncovered"}
@@ -893,14 +915,6 @@ function LessonCard({
                   }
                 >
                   La stå udekket
-                </MiniToggle>
-                <MiniToggle
-                  active={kind === "pending"}
-                  onClick={() =>
-                    onChange({ kind: "pending", coveringTeacherId: null, coveringVikarId: null })
-                  }
-                >
-                  Nullstill
                 </MiniToggle>
               </div>
             </div>
