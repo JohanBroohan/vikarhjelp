@@ -4,6 +4,7 @@ import { getUser } from "@/lib/auth";
 import { getMembership } from "@/lib/membership";
 import { Sidebar } from "@/components/Sidebar";
 import { MobileNav } from "@/components/MobileNav";
+import { MobileEntryRedirect } from "@/components/MobileEntryRedirect";
 
 // Every page in this group is per-request (auth + live data), so never
 // statically prerender them at build time.
@@ -27,6 +28,7 @@ export default async function AppLayout({
 
   return (
     <div className="flex h-screen overflow-hidden">
+      <MobileEntryRedirect />
       <div className="hidden md:block">
         <Sidebar />
       </div>

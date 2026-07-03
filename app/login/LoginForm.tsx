@@ -28,7 +28,12 @@ export function LoginForm({ next }: { next: string }) {
         return;
       }
       // Full navigation so the proxy/session cookies are picked up server-side.
-      router.replace(next || "/");
+      // On phones the app is used almost entirely to register absence, so land
+      // there by default (desktop keeps Oversikt). An explicit `next` wins.
+      const isMobile =
+        typeof window !== "undefined" &&
+        window.matchMedia("(max-width: 767px)").matches;
+      router.replace(next || (isMobile ? "/fravaer" : "/"));
       router.refresh();
     } catch {
       setError("Noe gikk galt. Prøv igjen.");
