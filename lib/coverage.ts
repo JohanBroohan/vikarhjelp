@@ -10,7 +10,7 @@ import type {
   Lesson,
   Teacher,
 } from "./database.types";
-import { isClassActivity, occupiesTeacher } from "./constants";
+import { isClassActivity, needsCoverage, occupiesTeacher } from "./constants";
 
 /* -------------------------------------------------------------------------- */
 /* Date helpers (timezone-safe — operate on YYYY-MM-DD strings)               */
@@ -265,14 +265,14 @@ export function computeCoveragePlan(input: CoveragePlanInput): {
     monthlyCoverCounts: countMonthlyCovers(input.assignments, input.date),
   };
 
-  // Only the sick teacher's actual classes need covering — non-teaching
-  // activities (office time, breaks, supervision, meetings) are skipped.
+  // The sick teacher's classes plus supervision duties (Tilsyn) need covering.
+  // Office time, breaks, meetings etc. are skipped — the teacher just misses them.
   const sickLessons = input.allLessons
     .filter(
       (l) =>
         l.teacher_id === input.absentTeacherId &&
         l.weekday === weekday &&
-        isClassActivity(l.subject),
+        needsCoverage(l.subject),
     )
     .sort((a, b) => a.period - b.period);
 

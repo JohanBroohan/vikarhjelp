@@ -68,6 +68,24 @@ export function isClassActivity(subject: string | null | undefined): boolean {
 }
 
 /**
+ * Non-teaching activities that STILL need covering when the assigned teacher is
+ * absent — supervision duties where someone must be physically present (student
+ * safety), even though they aren't classes. Matched case-insensitively.
+ */
+export const COVER_DUTY_KEYWORDS = ["tilsyn"];
+
+/**
+ * Does this activity need someone to cover it when the teacher is away? True for
+ * real classes AND supervision duties (COVER_DUTY_KEYWORDS). Office time, breaks,
+ * meetings, planning etc. don't need covering — the teacher simply misses them.
+ */
+export function needsCoverage(subject: string | null | undefined): boolean {
+  if (isClassActivity(subject)) return true;
+  const s = (subject ?? "").trim().toLowerCase();
+  return COVER_DUTY_KEYWORDS.some((k) => s.includes(k));
+}
+
+/**
  * Non-teaching activities that DON'T tie a teacher up — they're flexible desk
  * time, so the teacher can still be pulled in to cover another class. Everything
  * else (classes, plus duties like supervision/meetings/breaks) keeps them busy.
