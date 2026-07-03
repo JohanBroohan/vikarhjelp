@@ -7,7 +7,17 @@ import { DateField } from "@/components/DateField";
 
 const PRESETS: RangePreset[] = ["week", "month", "custom"];
 
-export function RangeFilter({ range }: { range: DateRange }) {
+export function RangeFilter({
+  range,
+  basePath = "/ekstratimer",
+  extra,
+}: {
+  range: DateRange;
+  /** Where to navigate when the period changes (defaults to the overview). */
+  basePath?: string;
+  /** Extra query params to preserve (e.g. { kind: "vikar" }). */
+  extra?: Record<string, string>;
+}) {
   const router = useRouter();
 
   function go(preset: RangePreset, from?: string, to?: string) {
@@ -17,7 +27,8 @@ export function RangeFilter({ range }: { range: DateRange }) {
       if (from) p.set("from", from);
       if (to) p.set("to", to);
     }
-    router.push(`/ekstratimer?${p.toString()}`);
+    for (const [k, v] of Object.entries(extra ?? {})) p.set(k, v);
+    router.push(`${basePath}?${p.toString()}`);
   }
 
   return (

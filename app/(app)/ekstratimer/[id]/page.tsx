@@ -7,6 +7,7 @@ import { resolveRange, rangeToQuery, RANGE_LABELS } from "@/lib/reports";
 import { fetchCoverRows, fetchAbsenceRows } from "@/lib/queries/extraHours";
 import { HistoryList } from "./HistoryList";
 import { ExportCsvMenu } from "../ExportCsvMenu";
+import { RangeFilter } from "../RangeFilter";
 
 export default async function TeacherExtraHoursPage({
   params,
@@ -55,6 +56,14 @@ export default async function TeacherExtraHoursPage({
           />
         }
       />
+
+      <div className="mb-5">
+        <RangeFilter
+          range={range}
+          basePath={`/ekstratimer/${id}`}
+          extra={isVikar ? { kind: "vikar" } : undefined}
+        />
+      </div>
 
       {rows.length === 0 && absences.length === 0 ? (
         <EmptyState
