@@ -6,6 +6,7 @@ import { PhoneLink } from "@/components/PhoneLink";
 import { Pencil } from "lucide-react";
 import { LiveBoard } from "./LiveBoard";
 import { DayNav } from "./DayNav";
+import { FilterMenu } from "./BoardFilters";
 
 export default async function OversiktPage({
   searchParams,
@@ -21,8 +22,15 @@ export default async function OversiktPage({
 
   return (
     <Page fluid>
-      {/* Compact day navigation (read-only screen, so no other actions). */}
-      <DayNav date={date} isToday={isToday} />
+      {/* Day navigation, with the board filters aligned to the far right. */}
+      <div className="mb-3 flex items-center gap-4">
+        <DayNav date={date} isToday={isToday} />
+        {board.weekday != null && (
+          <div className="ml-auto">
+            <FilterMenu showStatus={isToday} />
+          </div>
+        )}
+      </div>
 
       {/* Large screens: timeline left, sick + vikars stacked on the right. */}
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">

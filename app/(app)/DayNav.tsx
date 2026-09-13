@@ -13,7 +13,7 @@ export function DayNav({ date, isToday }: { date: string; isToday: boolean }) {
   const go = (d: string) => router.push(`/?date=${d}`);
 
   return (
-    <div className="mb-3 flex items-center gap-4">
+    <div className="flex items-center gap-4">
       <button
         onClick={() => go(addDaysISO(date, -1))}
         aria-label="Forrige dag"
