@@ -11,6 +11,7 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { ChevronDown } from "lucide-react";
 import { Card } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
 import { EMPLOYEE_ROLES } from "@/lib/constants";
@@ -306,8 +307,8 @@ export function LiveBoard({
   return (
     <div>
       {/* Filters — top right of the timeline. */}
-      <div className="mb-3 flex flex-wrap items-center justify-end gap-x-4 gap-y-2">
-        <FilterBar filters={filters} setFilters={setFilters} showStatus={isToday} />
+      <div className="mb-3 flex items-center justify-end">
+        <FilterMenu filters={filters} setFilters={setFilters} showStatus={isToday} />
       </div>
 
       <Card className="overflow-hidden">
@@ -432,7 +433,18 @@ export function LiveBoard({
   );
 }
 
-function FilterBar({
+/** Number of filters narrowing the board — shown as a badge on the button. */
+function activeFilterCount(f: Filters, showStatus: boolean): number {
+  let n = 0;
+  for (const r of EMPLOYEE_ROLES) if (f.stillinger[r.value] === false) n += 1;
+  if (!f.showVikars) n += 1;
+  if (f.hideAbsent) n += 1;
+  if (showStatus && f.onlyFree) n += 1;
+  if (showStatus && f.onlyInClass) n += 1;
+  return n;
+}
+
+function FilterMenu({
   filters,
   setFilters,
   showStatus,
@@ -441,91 +453,152 @@ function FilterBar({
   setFilters: Dispatch<SetStateAction<Filters>>;
   showStatus: boolean;
 }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Close on outside click / Escape (mirrors ExportCsvMenu).
+  useEffect(() => {
+    if (!open) return;
+    function onDoc(e: MouseEvent) {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
   const toggleStilling = (v: string) =>
     setFilters((f) => ({
       ...f,
       stillinger: { ...f.stillinger, [v]: f.stillinger[v] === false },
     }));
 
+  const count = activeFilterCount(filters, showStatus);
+
   return (
-    <div className="flex flex-wrap items-center justify-end gap-1.5">
-      {EMPLOYEE_ROLES.map((r) => (
-        <Chip
-          key={r.value}
-          active={filters.stillinger[r.value] !== false}
-          onClick={() => toggleStilling(r.value)}
-        >
-          {r.label}
-        </Chip>
-      ))}
-      <Divider />
-      <Chip
-        active={filters.showVikars}
-        onClick={() => setFilters((f) => ({ ...f, showVikars: !f.showVikars }))}
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className="inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-sm font-medium text-brand-700 ring-1 ring-line hover:bg-brand-50"
       >
-        Vikarer
-      </Chip>
-      <Chip
-        active={filters.hideAbsent}
-        onClick={() => setFilters((f) => ({ ...f, hideAbsent: !f.hideAbsent }))}
-      >
-        Skjul fraværende
-      </Chip>
-      {showStatus && (
-        <>
-          <Divider />
-          <Chip
-            active={filters.onlyFree}
-            onClick={() => setFilters((f) => ({ ...f, onlyFree: !f.onlyFree }))}
-          >
-            Ledige nå
-          </Chip>
-          <Chip
-            active={filters.onlyInClass}
-            onClick={() => setFilters((f) => ({ ...f, onlyInClass: !f.onlyInClass }))}
-          >
-            I klasse
-          </Chip>
-        </>
-      )}
-      {!isDefaultFilters(filters) && (
-        <button
-          type="button"
-          onClick={() => setFilters(DEFAULT_FILTERS)}
-          className="ml-1 text-xs text-muted underline hover:text-ink"
-        >
-          Nullstill
-        </button>
+        Filter
+        {count > 0 && (
+          <span className="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-brand-600 px-1 text-xs font-semibold text-white">
+            {count}
+          </span>
+        )}
+        <ChevronDown className="h-4 w-4" strokeWidth={2} />
+      </button>
+
+      {open && (
+        <div className="absolute right-0 z-30 mt-1 w-64 rounded-xl border border-line bg-surface p-3 shadow-xl">
+          <FilterSection title="Stilling">
+            {EMPLOYEE_ROLES.map((r) => (
+              <CheckRow
+                key={r.value}
+                label={r.label}
+                checked={filters.stillinger[r.value] !== false}
+                onChange={() => toggleStilling(r.value)}
+              />
+            ))}
+          </FilterSection>
+
+          <div className="my-2 border-t border-line" />
+
+          <CheckRow
+            label="Vis vikarer"
+            checked={filters.showVikars}
+            onChange={() => setFilters((f) => ({ ...f, showVikars: !f.showVikars }))}
+          />
+          <CheckRow
+            label="Skjul fraværende"
+            checked={filters.hideAbsent}
+            onChange={() => setFilters((f) => ({ ...f, hideAbsent: !f.hideAbsent }))}
+          />
+
+          {showStatus && (
+            <>
+              <div className="my-2 border-t border-line" />
+              <FilterSection title="Status nå">
+                <CheckRow
+                  label="Bare ledige nå"
+                  checked={filters.onlyFree}
+                  onChange={() => setFilters((f) => ({ ...f, onlyFree: !f.onlyFree }))}
+                />
+                <CheckRow
+                  label="Bare i klasse"
+                  checked={filters.onlyInClass}
+                  onChange={() =>
+                    setFilters((f) => ({ ...f, onlyInClass: !f.onlyInClass }))
+                  }
+                />
+              </FilterSection>
+            </>
+          )}
+
+          {!isDefaultFilters(filters) && (
+            <>
+              <div className="my-2 border-t border-line" />
+              <button
+                type="button"
+                onClick={() => setFilters(DEFAULT_FILTERS)}
+                className="px-1.5 text-xs text-muted underline hover:text-ink"
+              >
+                Nullstill filtre
+              </button>
+            </>
+          )}
+        </div>
       )}
     </div>
   );
 }
 
-function Chip({
-  active,
-  onClick,
+function FilterSection({
+  title,
   children,
 }: {
-  active: boolean;
-  onClick: () => void;
+  title: string;
   children: ReactNode;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={`rounded-full px-2.5 py-1 text-xs font-medium transition ${
-        active ? "bg-ink text-white" : "text-muted ring-1 ring-line hover:bg-canvas"
-      }`}
-    >
+    <div>
+      <div className="mb-1 px-1.5 text-xs font-medium uppercase tracking-wide text-muted">
+        {title}
+      </div>
       {children}
-    </button>
+    </div>
   );
 }
 
-function Divider() {
-  return <span className="mx-0.5 h-4 w-px bg-line" aria-hidden />;
+function CheckRow({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: () => void;
+}) {
+  return (
+    <label className="flex cursor-pointer items-center gap-2 rounded-lg px-1.5 py-1.5 text-sm text-ink hover:bg-canvas">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={onChange}
+        className="h-4 w-4 accent-brand-600"
+      />
+      {label}
+    </label>
+  );
 }
 
 function StatusLine({ act }: { act: Activity }) {
