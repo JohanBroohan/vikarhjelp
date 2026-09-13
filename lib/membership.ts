@@ -1,23 +1,24 @@
 // Server-side helpers for the current user's school membership.
 
+import { cache } from "react";
 import { createClient } from "./supabase/server";
 import { createAdminClient } from "./supabase/admin";
+import { getUser } from "./auth";
 import type { Membership } from "./database.types";
 
 /** The current user's membership, or null if they haven't joined a school. */
-export async function getMembership(): Promise<Membership | null> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+export const getMembership = cache(async (): Promise<Membership | null> => {
+  // Reuses the request-cached getUser() so this doesn't add another auth call.
+  const user = await getUser();
   if (!user) return null;
+  const supabase = await createClient();
   const { data } = await supabase
     .from("memberships")
     .select("*")
     .eq("user_id", user.id)
     .maybeSingle();
   return (data as Membership | null) ?? null;
-}
+});
 
 /**
  * A pending invitation for an email, with the inviting school's name. Read with
