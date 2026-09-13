@@ -22,14 +22,17 @@ export default async function OversiktPage({
 
   return (
     <Page fluid>
-      {/* Day navigation, with the board filters aligned to the far right. */}
-      <div className="mb-3 flex items-center gap-4">
-        <DayNav date={date} isToday={isToday} />
-        {board.weekday != null && (
-          <div className="ml-auto">
-            <FilterMenu showStatus={isToday} />
-          </div>
-        )}
+      {/* Day navigation. Mirror the content grid so the Filter button aligns
+          with the right edge of the timeline column, not the whole screen. */}
+      <div className="mb-3 grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="flex items-center gap-4">
+          <DayNav date={date} isToday={isToday} />
+          {board.weekday != null && (
+            <div className="ml-auto">
+              <FilterMenu showStatus={isToday} />
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Large screens: timeline left, sick + vikars stacked on the right. */}
