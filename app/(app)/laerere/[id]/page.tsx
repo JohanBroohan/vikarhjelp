@@ -7,10 +7,14 @@ import { ScheduleEditor } from "./ScheduleEditor";
 
 export default async function TeacherSchedulePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ from?: string }>;
 }) {
   const { id } = await params;
+  const { from } = await searchParams;
+  const fromOversikt = from === "oversikt";
   const supabase = await createClient();
 
   const { data: teacher } = await supabase
@@ -31,8 +35,11 @@ export default async function TeacherSchedulePage({
   return (
     <Page>
       <div className="mb-2">
-        <Link href="/laerere" className="text-sm text-muted hover:text-ink">
-          ← Tilbake til lærere
+        <Link
+          href={fromOversikt ? "/" : "/laerere"}
+          className="text-sm text-muted hover:text-ink"
+        >
+          {fromOversikt ? "← Tilbake til oversikt" : "← Tilbake til lærere"}
         </Link>
       </div>
       <PageHeader

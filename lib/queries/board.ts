@@ -11,6 +11,7 @@ import {
   isClassActivity,
   SCHOOL_DAY_START,
   SCHOOL_DAY_END,
+  DEFAULT_EMPLOYEE_ROLE,
   type CoverageStatus,
 } from "@/lib/constants";
 import type {
@@ -43,6 +44,8 @@ export interface BoardTeacher {
   id: string;
   name: string;
   role: "teacher" | "vikar";
+  /** Employee "stilling" slug (laerer/fagarbeider/…); null for vikar rows. */
+  stilling: string | null;
   absent: boolean;
   absenceWindow: { from: string; to: string } | null;
   lessons: BoardLesson[];
@@ -235,6 +238,7 @@ export async function getTodayBoard(date: string): Promise<TodayBoard> {
       id: t.id,
       name: t.name,
       role: "teacher" as const,
+      stilling: t.role || DEFAULT_EMPLOYEE_ROLE,
       absent: Boolean(absence),
       absenceWindow,
       lessons: [...own, ...covering].sort((a, b) => a.start.localeCompare(b.start)),
@@ -255,6 +259,7 @@ export async function getTodayBoard(date: string): Promise<TodayBoard> {
         id: `vikar-${a.covering_vikar_id}`,
         name: vikarName.get(a.covering_vikar_id) ?? "Vikar",
         role: "vikar",
+        stilling: null,
         absent: false,
         absenceWindow: null,
         lessons: [],

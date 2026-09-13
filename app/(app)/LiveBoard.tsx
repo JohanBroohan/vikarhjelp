@@ -1,9 +1,19 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type Dispatch,
+  type ReactNode,
+  type SetStateAction,
+} from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Card } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
+import { EMPLOYEE_ROLES } from "@/lib/constants";
 import type { BoardLesson, BoardTeacher, TodayBoard } from "@/lib/queries/board";
 
 // Tables whose changes should immediately refresh the board.
@@ -64,6 +74,83 @@ function activityNow(t: BoardTeacher, now: number): Activity {
   return { state: "free" };
 }
 
+/* Filters ------------------------------------------------------------------ */
+
+const FILTERS_KEY = "oversikt-filters";
+
+type Filters = {
+  /** Which employee "stillinger" to show, keyed by role slug. */
+  stillinger: Record<string, boolean>;
+  hideAbsent: boolean;
+  onlyFree: boolean;
+  onlyInClass: boolean;
+  showVikars: boolean;
+};
+
+const DEFAULT_FILTERS: Filters = {
+  stillinger: Object.fromEntries(EMPLOYEE_ROLES.map((r) => [r.value, true])),
+  hideAbsent: false,
+  onlyFree: false,
+  onlyInClass: false,
+  showVikars: true,
+};
+
+function isDefaultFilters(f: Filters): boolean {
+  return (
+    !f.hideAbsent &&
+    !f.onlyFree &&
+    !f.onlyInClass &&
+    f.showVikars &&
+    EMPLOYEE_ROLES.every((r) => f.stillinger[r.value] !== false)
+  );
+}
+
+// The selection is persisted per-browser in localStorage and exposed through
+// useSyncExternalStore, so the server/first-hydration render uses the defaults
+// and the saved value is applied right after — no hydration mismatch and no
+// setState-in-effect. An in-memory cache is the source of truth (loaded from
+// storage once) and gives getSnapshot a referentially stable value between
+// changes, as useSyncExternalStore requires.
+let filtersLoaded = false;
+let cachedFilters: Filters = DEFAULT_FILTERS;
+const filterListeners = new Set<() => void>();
+
+function readFilters(): Filters {
+  if (!filtersLoaded) {
+    filtersLoaded = true;
+    try {
+      const raw = localStorage.getItem(FILTERS_KEY);
+      if (raw) {
+        const saved = JSON.parse(raw) as Partial<Filters>;
+        cachedFilters = {
+          ...DEFAULT_FILTERS,
+          ...saved,
+          stillinger: { ...DEFAULT_FILTERS.stillinger, ...(saved.stillinger ?? {}) },
+        };
+      }
+    } catch {
+      /* storage unavailable or corrupt — keep the defaults */
+    }
+  }
+  return cachedFilters;
+}
+
+function subscribeFilters(cb: () => void): () => void {
+  filterListeners.add(cb);
+  return () => filterListeners.delete(cb);
+}
+
+function writeFilters(next: Filters) {
+  cachedFilters = next;
+  filtersLoaded = true;
+  try {
+    localStorage.setItem(FILTERS_KEY, JSON.stringify(next));
+  } catch {
+    /* storage unavailable — value still lives in memory for this session */
+  }
+  filterListeners.forEach((l) => l());
+}
+
 export function LiveBoard({
   board,
   isToday,
@@ -75,6 +162,18 @@ export function LiveBoard({
   const [now, setNow] = useState<number | null>(null);
   const rowsRef = useRef<HTMLDivElement>(null);
   const [rowH, setRowH] = useState(ROW_H);
+
+  const filters = useSyncExternalStore(
+    subscribeFilters,
+    readFilters,
+    () => DEFAULT_FILTERS,
+  );
+  const setFilters: Dispatch<SetStateAction<Filters>> = (action) =>
+    writeFilters(
+      typeof action === "function"
+        ? (action as (prev: Filters) => Filters)(readFilters())
+        : action,
+    );
 
   // Tick the clock (and keep the server data fresh for a TV left on all day).
   useEffect(() => {
@@ -148,9 +247,26 @@ export function LiveBoard({
     };
   }, [router]);
 
+  // Apply the active filters. Status filters ("Ledige nå"/"I klasse") only make
+  // sense for today's live view, so they're ignored on other days.
+  const liveStatus = isToday && now != null;
+  const visibleTeachers = board.teachers.filter((t) => {
+    if (t.role === "vikar") return filters.showVikars;
+    if (filters.stillinger[t.stilling ?? ""] === false) return false;
+    if (filters.hideAbsent && t.absent) return false;
+    if ((filters.onlyFree || filters.onlyInClass) && liveStatus) {
+      const act = activityNow(t, now!);
+      const isFree = act.state === "free";
+      const isInClass = act.state === "lesson" && act.lesson.isClass;
+      if (!((filters.onlyFree && isFree) || (filters.onlyInClass && isInClass)))
+        return false;
+    }
+    return true;
+  });
+
   // On large screens, shrink rows so every teacher fits without scrolling
   // (the TV has no one to scroll it). Small screens keep full height + scroll.
-  const rowCount = board.teachers.length;
+  const rowCount = visibleTeachers.length;
   useEffect(() => {
     const recompute = () => {
       const el = rowsRef.current;
@@ -189,6 +305,11 @@ export function LiveBoard({
 
   return (
     <div>
+      {/* Filters — top right of the timeline. */}
+      <div className="mb-3 flex flex-wrap items-center justify-end gap-x-4 gap-y-2">
+        <FilterBar filters={filters} setFilters={setFilters} showStatus={isToday} />
+      </div>
+
       <Card className="overflow-hidden">
         <div className="flex">
           {/* Left: teacher names + live status */}
@@ -199,7 +320,7 @@ export function LiveBoard({
             >
               Lærer
             </div>
-            {board.teachers.map((t) => {
+            {visibleTeachers.map((t) => {
               const act = isToday && now != null ? activityNow(t, now) : null;
               return (
                 <div
@@ -210,7 +331,16 @@ export function LiveBoard({
                   style={{ height: rowH }}
                 >
                   <div className="flex items-center gap-1.5">
-                    <span className="truncate text-sm font-medium text-ink">{t.name}</span>
+                    {t.role === "teacher" ? (
+                      <Link
+                        href={`/laerere/${t.id}?from=oversikt`}
+                        className="truncate text-sm font-medium text-ink hover:text-brand-700 hover:underline"
+                      >
+                        {t.name}
+                      </Link>
+                    ) : (
+                      <span className="truncate text-sm font-medium text-ink">{t.name}</span>
+                    )}
                     {t.role === "vikar" && (
                       <span className="shrink-0 rounded bg-violet-100 px-1.5 py-0.5 text-[10px] font-medium text-violet-700 dark:bg-[rgba(158,122,225,0.1)] dark:text-[#9e7ae1] dark:ring-1 dark:ring-[rgba(158,122,225,0.3)]">
                         Vikar
@@ -252,7 +382,7 @@ export function LiveBoard({
                   />
                 ))}
 
-                {board.teachers.map((t) => (
+                {visibleTeachers.map((t) => (
                   <div
                     key={t.id}
                     className={`relative border-t border-line ${t.absent ? "bg-canvas/40" : ""}`}
@@ -289,11 +419,113 @@ export function LiveBoard({
         </div>
       </Card>
 
+      {visibleTeachers.length === 0 && (
+        <p className="mt-3 rounded-lg border border-dashed border-line px-4 py-6 text-center text-sm text-muted">
+          Ingen ansatte matcher filteret.
+        </p>
+      )}
+
       <div className="mt-4">
         <Legend />
       </div>
     </div>
   );
+}
+
+function FilterBar({
+  filters,
+  setFilters,
+  showStatus,
+}: {
+  filters: Filters;
+  setFilters: Dispatch<SetStateAction<Filters>>;
+  showStatus: boolean;
+}) {
+  const toggleStilling = (v: string) =>
+    setFilters((f) => ({
+      ...f,
+      stillinger: { ...f.stillinger, [v]: f.stillinger[v] === false },
+    }));
+
+  return (
+    <div className="flex flex-wrap items-center justify-end gap-1.5">
+      {EMPLOYEE_ROLES.map((r) => (
+        <Chip
+          key={r.value}
+          active={filters.stillinger[r.value] !== false}
+          onClick={() => toggleStilling(r.value)}
+        >
+          {r.label}
+        </Chip>
+      ))}
+      <Divider />
+      <Chip
+        active={filters.showVikars}
+        onClick={() => setFilters((f) => ({ ...f, showVikars: !f.showVikars }))}
+      >
+        Vikarer
+      </Chip>
+      <Chip
+        active={filters.hideAbsent}
+        onClick={() => setFilters((f) => ({ ...f, hideAbsent: !f.hideAbsent }))}
+      >
+        Skjul fraværende
+      </Chip>
+      {showStatus && (
+        <>
+          <Divider />
+          <Chip
+            active={filters.onlyFree}
+            onClick={() => setFilters((f) => ({ ...f, onlyFree: !f.onlyFree }))}
+          >
+            Ledige nå
+          </Chip>
+          <Chip
+            active={filters.onlyInClass}
+            onClick={() => setFilters((f) => ({ ...f, onlyInClass: !f.onlyInClass }))}
+          >
+            I klasse
+          </Chip>
+        </>
+      )}
+      {!isDefaultFilters(filters) && (
+        <button
+          type="button"
+          onClick={() => setFilters(DEFAULT_FILTERS)}
+          className="ml-1 text-xs text-muted underline hover:text-ink"
+        >
+          Nullstill
+        </button>
+      )}
+    </div>
+  );
+}
+
+function Chip({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`rounded-full px-2.5 py-1 text-xs font-medium transition ${
+        active ? "bg-ink text-white" : "text-muted ring-1 ring-line hover:bg-canvas"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function Divider() {
+  return <span className="mx-0.5 h-4 w-px bg-line" aria-hidden />;
 }
 
 function StatusLine({ act }: { act: Activity }) {
