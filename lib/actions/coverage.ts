@@ -26,7 +26,7 @@ import {
   DEFAULT_ABSENCE_TYPE,
   SCHOOL_DAY_START,
   SCHOOL_DAY_END,
-  needsCoverage,
+  lessonNeedsCoverage,
   lessonInWindow,
   lessonClock,
   type CoverageStatus,
@@ -463,7 +463,7 @@ export async function registerMultiDayAbsence(
     const dayLessons = teacherLessons.filter(
       (l) =>
         l.weekday === weekday &&
-        needsCoverage(l.subject) &&
+        lessonNeedsCoverage(l) &&
         lessonInWindow(l, window),
     );
     const dayLessonIds = new Set(dayLessons.map((l) => l.id));
@@ -650,7 +650,7 @@ export async function loadRangePlan(input: {
       .filter(
         (l) =>
           l.weekday === weekday &&
-          needsCoverage(l.subject) &&
+          lessonNeedsCoverage(l) &&
           lessonInWindow(l, window),
       )
       .map((l) => {

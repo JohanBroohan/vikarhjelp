@@ -3,11 +3,12 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Card, Field, Input, Select } from "@/components/ui";
-import { WEEKDAY_SHORT } from "@/lib/constants";
+import { WEEKDAY_SHORT, ACTIVITY_TYPES } from "@/lib/constants";
 import {
   parseTeacherGrid,
   commitTeacherGrid,
   type GridParseResult,
+  type GridEntry,
 } from "@/lib/actions/gridImport";
 
 const NEW = "__new__";
@@ -30,6 +31,9 @@ export function GridImportClient({
   // Editable per-row times (period -> {start,end}); lets the principal fix a
   // wrong time in the preview before saving. All cells in a row share a time.
   const [slotTimes, setSlotTimes] = useState<Record<number, { start: string; end: string }>>({});
+  // Per-row edits in the preview: change the session type or drop a row entirely.
+  const [typeOverrides, setTypeOverrides] = useState<Record<number, string>>({});
+  const [removed, setRemoved] = useState<Record<number, boolean>>({});
 
   const [parsing, startParse] = useTransition();
   const [committing, startCommit] = useTransition();
@@ -53,6 +57,8 @@ export function GridImportClient({
         if (!st[e.period]) st[e.period] = { start: e.start, end: e.end };
       }
       setSlotTimes(st);
+      setTypeOverrides({});
+      setRemoved({});
       // Pre-select the teacher: match detected name, else offer to create it,
       // else fall back to the filename (minus extension).
       const detected =
@@ -73,12 +79,19 @@ export function GridImportClient({
     if (!result) return;
     setError(null);
     startCommit(async () => {
-      // Apply any edited times to the entries before saving.
-      const entries = result.entries.map((e) => ({
-        ...e,
-        start: slotTimes[e.period]?.start ?? e.start,
-        end: slotTimes[e.period]?.end ?? e.end,
-      }));
+      // Apply the preview edits (times, session type) and drop removed rows.
+      const entries = result.entries
+        .map((e, i): GridEntry | null =>
+          removed[i]
+            ? null
+            : {
+                ...e,
+                start: slotTimes[e.period]?.start ?? e.start,
+                end: slotTimes[e.period]?.end ?? e.end,
+                activityType: typeOverrides[i] ?? e.activityType,
+              },
+        )
+        .filter((e): e is GridEntry => e !== null);
       const res = await commitTeacherGrid({
         teacherId: assign && assign !== NEW ? assign : undefined,
         newTeacherName: assign === NEW ? newName : undefined,
@@ -190,10 +203,12 @@ export function GridImportClient({
                     <th className="px-3 py-2 font-medium">Aktivitet</th>
                     <th className="px-3 py-2 font-medium">Klasse</th>
                     <th className="px-3 py-2 font-medium">Type</th>
+                    <th className="px-3 py-2 font-medium"></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {result.entries.map((e, i) => (
+                  {result.entries.map((e, i) =>
+                    removed[i] ? null : (
                     <tr key={i} className="border-b border-line/60">
                       <td className="px-3 py-1.5">{WEEKDAY_SHORT[e.weekday]}</td>
                       <td className="px-3 py-1.5">
@@ -232,14 +247,33 @@ export function GridImportClient({
                       <td className="px-3 py-1.5 font-medium text-ink">{e.subject}</td>
                       <td className="px-3 py-1.5 text-muted">{e.classGroup ?? "—"}</td>
                       <td className="px-3 py-1.5">
-                        {e.isClass ? (
-                          <span className="text-xs font-medium text-emerald-700">Klasse</span>
-                        ) : (
-                          <span className="text-xs text-muted">Annet</span>
-                        )}
+                        <select
+                          value={typeOverrides[i] ?? e.activityType}
+                          onChange={(ev) =>
+                            setTypeOverrides((t) => ({ ...t, [i]: ev.target.value }))
+                          }
+                          className="rounded border border-line bg-surface px-1.5 py-1 text-xs outline-none focus:border-brand-500"
+                        >
+                          {ACTIVITY_TYPES.map((a) => (
+                            <option key={a.value} value={a.value}>
+                              {a.label}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-3 py-1.5 text-right">
+                        <button
+                          type="button"
+                          onClick={() => setRemoved((r) => ({ ...r, [i]: true }))}
+                          title="Fjern denne økten"
+                          className="rounded p-1 text-muted transition hover:bg-red-50 hover:text-red-600"
+                        >
+                          ✕
+                        </button>
                       </td>
                     </tr>
-                  ))}
+                  ),
+                  )}
                 </tbody>
               </table>
             </div>

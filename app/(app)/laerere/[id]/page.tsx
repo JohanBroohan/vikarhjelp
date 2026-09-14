@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Page, PageHeader } from "@/components/ui";
 import type { Lesson, Teacher } from "@/lib/database.types";
-import { ScheduleEditor } from "./ScheduleEditor";
+import { TeacherTimeline } from "./TeacherTimeline";
 
 export default async function TeacherSchedulePage({
   params,
@@ -44,9 +44,9 @@ export default async function TeacherSchedulePage({
       </div>
       <PageHeader
         title={teacher.name}
-        description="Klikk på en celle i timeplanen for å legge til eller endre en time."
+        description="Timeplanen som tidslinje. Klikk på en økt for å endre den, eller på en tom dag for å legge til."
       />
-      <ScheduleEditor
+      <TeacherTimeline
         teacher={teacher as Teacher}
         lessons={(lessons ?? []) as Lesson[]}
       />

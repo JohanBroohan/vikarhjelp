@@ -112,6 +112,78 @@ export function occupiesTeacher(subject: string | null | undefined): boolean {
   return !AVAILABLE_KEYWORDS.some((k) => s.includes(k));
 }
 
+/* Explicit session types ---------------------------------------------------- */
+
+/**
+ * The kinds of session a timetable slot can be. Choosing one explicitly (in the
+ * import or the schedule editor) means the app no longer has to guess from the
+ * subject text. Each type declares its scheduling behaviour:
+ *  - isClass:       a real teaching class
+ *  - needsCoverage: someone must cover it when the assigned teacher is away
+ *  - occupies:      ties the teacher up (so they can't be pulled to cover)
+ */
+export interface ActivityType {
+  value: string;
+  label: string;
+  isClass: boolean;
+  needsCoverage: boolean;
+  occupies: boolean;
+}
+
+export const ACTIVITY_TYPES: ActivityType[] = [
+  { value: "undervisning", label: "Undervisning", isClass: true, needsCoverage: true, occupies: true },
+  { value: "tilsyn", label: "Tilsyn", isClass: false, needsCoverage: true, occupies: true },
+  { value: "mote", label: "Møte", isClass: false, needsCoverage: false, occupies: true },
+  { value: "kontor", label: "Kontortid", isClass: false, needsCoverage: false, occupies: false },
+  { value: "pause", label: "Pause / fri", isClass: false, needsCoverage: false, occupies: false },
+  { value: "annet", label: "Annet", isClass: false, needsCoverage: false, occupies: true },
+];
+
+export const DEFAULT_ACTIVITY_TYPE = "undervisning";
+
+const ACTIVITY_BY_VALUE = new Map(ACTIVITY_TYPES.map((a) => [a.value, a]));
+
+/** The ActivityType for a stored value, or null when unset/unknown. */
+export function activityType(value: string | null | undefined): ActivityType | null {
+  return value ? ACTIVITY_BY_VALUE.get(value) ?? null : null;
+}
+
+export function activityLabel(value: string | null | undefined): string {
+  return activityType(value)?.label ?? "Undervisning";
+}
+
+/** Best-guess session type from the subject text — used to pre-fill the import. */
+export function inferActivityType(subject: string | null | undefined): string {
+  const s = (subject ?? "").trim().toLowerCase();
+  if (!s) return "annet";
+  if (s.includes("tilsyn")) return "tilsyn";
+  if (s.includes("møte") || s.includes("mote") || s.includes("teamtid")) return "mote";
+  if (s.includes("kontor")) return "kontor";
+  if (s.includes("pause") || s.includes("lunsj") || s.includes("friminutt") || s.includes("fri"))
+    return "pause";
+  return isClassActivity(subject) ? "undervisning" : "annet";
+}
+
+type ActivityLike = { subject: string | null; activity_type?: string | null };
+
+/** Is this a real class? Uses the explicit type when set, else infers. */
+export function lessonIsClass(l: ActivityLike): boolean {
+  const a = activityType(l.activity_type);
+  return a ? a.isClass : isClassActivity(l.subject);
+}
+
+/** Does this session need covering when the teacher is away? */
+export function lessonNeedsCoverage(l: ActivityLike): boolean {
+  const a = activityType(l.activity_type);
+  return a ? a.needsCoverage : needsCoverage(l.subject);
+}
+
+/** Does this session tie the teacher up (can't be pulled to cover)? */
+export function lessonOccupies(l: ActivityLike): boolean {
+  const a = activityType(l.activity_type);
+  return a ? a.occupies : occupiesTeacher(l.subject);
+}
+
 /**
  * Effective clock times for a lesson — its own start/end if set, otherwise the
  * default period clock. Used to decide whether a lesson falls inside a

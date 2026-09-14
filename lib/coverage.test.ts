@@ -34,6 +34,7 @@ function lesson(p: Partial<Lesson> & { teacher_id: string; weekday: number; peri
     subject: p.subject ?? "Fag",
     class_group: p.class_group ?? "8A",
     room: p.room ?? null,
+    activity_type: p.activity_type ?? null,
     created_at: "",
   };
 }

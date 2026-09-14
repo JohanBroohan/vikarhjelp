@@ -8,7 +8,7 @@ import { weekdayFromISODate } from "@/lib/coverage";
 import { addDaysISO } from "@/lib/format";
 import {
   lessonClock,
-  isClassActivity,
+  lessonIsClass,
   SCHOOL_DAY_START,
   SCHOOL_DAY_END,
   DEFAULT_EMPLOYEE_ROLE,
@@ -224,7 +224,7 @@ export async function getTodayBoard(date: string): Promise<TodayBoard> {
           subject: l.subject,
           classGroup: l.class_group,
           room: l.room,
-          isClass: isClassActivity(l.subject),
+          isClass: lessonIsClass(l),
           kind: "own" as const,
           coveredAway: Boolean(a),
           coveringName: a ? coverName(a) : null,

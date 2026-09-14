@@ -8,7 +8,8 @@ import {
   WEEKDAY_ALIASES,
   WEEKDAY_NAMES,
   PERIOD_BY_START,
-  isClassActivity,
+  inferActivityType,
+  lessonIsClass,
 } from "@/lib/constants";
 import type { ActionResult } from "./_common";
 
@@ -20,6 +21,8 @@ export interface GridEntry {
   end: string;
   subject: string | null;
   classGroup: string | null;
+  /** Explicit session type (see ACTIVITY_TYPES), pre-filled by inference. */
+  activityType: string;
   isClass: boolean;
   raw: string;
 }
@@ -169,6 +172,7 @@ export async function parseTeacherGrid(
     const period = allMatchKnownSlots ? PERIOD_BY_START[row.start] : i + 1;
     for (const { weekday, raw } of row.cells) {
       const { subject, classGroup } = splitSubject(raw);
+      const at = inferActivityType(subject);
       entries.push({
         weekday,
         weekdayLabel: WEEKDAY_NAMES[weekday],
@@ -177,7 +181,8 @@ export async function parseTeacherGrid(
         end: row.end,
         subject,
         classGroup,
-        isClass: isClassActivity(subject),
+        activityType: at,
+        isClass: lessonIsClass({ subject, activity_type: at }),
         raw,
       });
     }
@@ -256,6 +261,7 @@ export async function commitTeacherGrid(
       end_time: e.end,
       subject: e.subject,
       class_group: e.classGroup,
+      activity_type: e.activityType,
       room: null,
     }));
   const { error: insErr } = await supabase

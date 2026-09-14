@@ -40,6 +40,8 @@ export type Lesson = {
   subject: string | null;
   class_group: string | null;
   room: string | null;
+  /** Explicit session type (see ACTIVITY_TYPES). Null = infer from subject. */
+  activity_type: string | null;
   created_at: string;
 };
 
