@@ -151,7 +151,7 @@ export function FilterMenu({ showStatus }: { showStatus: boolean }) {
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
-        className="inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-sm font-medium text-brand-700 ring-1 ring-line hover:bg-brand-50"
+        className="inline-flex items-center gap-1.5 rounded-lg bg-surface px-3.5 py-2 text-sm font-medium text-ink ring-1 ring-line hover:bg-canvas"
       >
         Filter
         {count > 0 && (

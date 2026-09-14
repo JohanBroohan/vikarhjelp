@@ -51,7 +51,7 @@ export function Card({
 }) {
   return (
     <div
-      className={`rounded-2xl bg-surface shadow-[0px_4px_40px_0px_rgba(42,53,76,0.08)] dark:border dark:border-line dark:shadow-none ${className}`}
+      className={`rounded-2xl border border-line bg-surface shadow-[0px_1px_2px_0px_rgba(42,53,76,0.04)] dark:shadow-none ${className}`}
     >
       {children}
     </div>

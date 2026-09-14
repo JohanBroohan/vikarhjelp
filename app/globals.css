@@ -26,12 +26,13 @@
   --color-brand-800: #213763;
   --color-brand-900: #1f3053;
 
-  /* Warm neutral surfaces */
+  /* Warm neutral surfaces. Content sits on `canvas` (a light grey) as white
+     `surface` cards framed by `line`, so the surfaces read as distinct panels. */
   --color-surface: #ffffff;
-  --color-canvas: #f6f6f4;
+  --color-canvas: #efeeec;
   --color-ink: #1c1c1a;
   --color-muted: #6b6b66;
-  --color-line: #e6e5e1;
+  --color-line: #e5e4e0;
 }
 
 :root {

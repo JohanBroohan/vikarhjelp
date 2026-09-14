@@ -8,8 +8,8 @@ import { NAV_ITEMS, SETTINGS_ITEM, isNavActive } from "./nav-items";
 
 const STORAGE_KEY = "vh:sidebar-collapsed";
 
-const ACTIVE = "bg-[rgba(82,125,216,0.1)] text-[#527dd8]";
-const INACTIVE = "text-muted hover:bg-canvas hover:text-ink";
+const ACTIVE = "bg-surface text-ink shadow-sm ring-1 ring-line";
+const INACTIVE = "text-muted hover:bg-surface/70 hover:text-ink";
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -57,7 +57,7 @@ export function Sidebar() {
 
   return (
     <aside
-      className={`flex h-full shrink-0 flex-col border-r border-line bg-[#fbfbf9] transition-[width] duration-200 dark:bg-surface ${
+      className={`flex h-full shrink-0 flex-col bg-transparent transition-[width] duration-200 ${
         collapsed ? "w-16" : "w-60"
       }`}
     >
@@ -99,7 +99,7 @@ export function Sidebar() {
         <button
           onClick={toggle}
           title={collapsed ? "Vis meny" : "Skjul meny"}
-          className={`flex w-full items-center rounded-xl py-2 text-sm font-medium text-muted transition hover:bg-canvas hover:text-ink ${
+          className={`flex w-full items-center rounded-xl py-2 text-sm font-medium text-muted transition hover:bg-surface/70 hover:text-ink ${
             collapsed ? "justify-center px-0" : "gap-3 px-3"
           }`}
         >
@@ -113,7 +113,7 @@ export function Sidebar() {
         <button
           onClick={toggleTheme}
           title={collapsed ? (dark ? "Lyst tema" : "Mørkt tema") : undefined}
-          className={`flex w-full items-center rounded-xl py-2 text-sm font-medium text-muted transition hover:bg-canvas hover:text-ink ${
+          className={`flex w-full items-center rounded-xl py-2 text-sm font-medium text-muted transition hover:bg-surface/70 hover:text-ink ${
             collapsed ? "justify-center px-0" : "gap-3 px-3"
           }`}
         >
@@ -140,7 +140,7 @@ export function Sidebar() {
           <button
             type="submit"
             title="Logg ut"
-            className={`flex w-full items-center rounded-xl py-2 text-sm font-medium text-muted transition hover:bg-canvas hover:text-ink ${
+            className={`flex w-full items-center rounded-xl py-2 text-sm font-medium text-muted transition hover:bg-surface/70 hover:text-ink ${
               collapsed ? "justify-center px-0" : "gap-3 px-3"
             }`}
           >

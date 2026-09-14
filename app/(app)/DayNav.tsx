@@ -6,7 +6,7 @@ import { DateField } from "@/components/DateField";
 import { ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
 
 const ARROW =
-  "flex h-[22px] w-[22px] items-center justify-center rounded-md bg-black/[0.04] text-[#4b4b4b] transition hover:bg-black/[0.08] dark:bg-white/[0.06] dark:text-muted dark:hover:bg-white/[0.1]";
+  "flex h-[26px] w-[26px] items-center justify-center rounded-lg bg-surface text-ink ring-1 ring-line transition hover:bg-canvas dark:text-muted";
 
 export function DayNav({ date, isToday }: { date: string; isToday: boolean }) {
   const router = useRouter();
@@ -51,7 +51,7 @@ export function DayNav({ date, isToday }: { date: string; isToday: boolean }) {
       {!isToday && (
         <button
           onClick={() => go(todayISO())}
-          className="rounded-xl px-3 py-1.5 text-sm font-medium text-brand-700 ring-1 ring-line transition hover:bg-brand-50"
+          className="rounded-lg bg-surface px-3 py-1.5 text-sm font-medium text-ink ring-1 ring-line transition hover:bg-canvas"
         >
           I dag
         </button>
