@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { Lesson, Teacher } from "@/lib/database.types";
 import {
@@ -10,11 +10,14 @@ import {
   DEFAULT_ACTIVITY_TYPE,
   inferActivityType,
 } from "@/lib/constants";
-import { Button, Card, Field, Input } from "@/components/ui";
+import { Button, Card, Field, Input, PageHeader } from "@/components/ui";
 import { Modal } from "@/components/Modal";
 import { upsertLesson, deleteLesson } from "@/lib/actions/lessons";
 
-const PX_PER_MIN = 0.9; // vertical scale of the day
+const HEAD_H = 36; // px — weekday header row
+const BOTTOM_GAP = 24; // px — breathing room below the calendar
+const MIN_PX_PER_MIN = 0.7;
+const MAX_PX_PER_MIN = 3;
 const FALLBACK_START = "08:00";
 const FALLBACK_END = "15:00";
 
@@ -60,6 +63,8 @@ export function TeacherTimeline({
   lessons: Lesson[];
 }) {
   const [target, setTarget] = useState<EditTarget | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [pxPerMin, setPxPerMin] = useState(1.2);
 
   // Day bounds from the data, rounded out to whole hours (with a sane fallback).
   const starts = lessons.map((l) => toMin(l.start_time)).filter((n): n is number => n != null);
@@ -68,34 +73,54 @@ export function TeacherTimeline({
   const rawEnd = ends.length ? Math.max(...ends) : toMin(FALLBACK_END)!;
   const dayStart = Math.floor(rawStart / 60) * 60;
   const dayEnd = Math.max(Math.ceil(rawEnd / 60) * 60, dayStart + 60);
-  const height = (dayEnd - dayStart) * PX_PER_MIN;
+  const rangeMin = dayEnd - dayStart;
 
+  // Scale the day to fill the screen height (clamped so it never gets silly).
+  useEffect(() => {
+    const recompute = () => {
+      const el = scrollRef.current;
+      if (!el) return;
+      const top = el.getBoundingClientRect().top;
+      const avail = window.innerHeight - top - HEAD_H - BOTTOM_GAP;
+      const ideal = avail / rangeMin;
+      setPxPerMin(Math.min(MAX_PX_PER_MIN, Math.max(MIN_PX_PER_MIN, ideal)));
+    };
+    recompute();
+    window.addEventListener("resize", recompute);
+    return () => window.removeEventListener("resize", recompute);
+  }, [rangeMin]);
+
+  const height = rangeMin * pxPerMin;
   const hours: number[] = [];
   for (let m = dayStart; m <= dayEnd; m += 60) hours.push(m);
 
   const byDay = (wd: number) =>
     lessons
       .filter((l) => l.weekday === wd && toMin(l.start_time) != null)
-      .sort((a, b) => (toMin(a.start_time)! - toMin(b.start_time)!));
+      .sort((a, b) => toMin(a.start_time)! - toMin(b.start_time)!);
 
   return (
     <>
-      <div className="mb-3 flex justify-end">
-        <Button onClick={() => setTarget({ lesson: null, weekday: 1 })}>+ Ny økt</Button>
-      </div>
+      <PageHeader
+        title={teacher.name}
+        description="Timeplanen som tidslinje. Klikk på en økt for å endre den, eller på en tom dag for å legge til."
+        actions={
+          <Button onClick={() => setTarget({ lesson: null, weekday: 1 })}>+ Ny økt</Button>
+        }
+      />
 
       <Card className="overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto" ref={scrollRef}>
           <div className="flex min-w-[760px]">
             {/* Time gutter */}
             <div className="w-14 shrink-0 border-r border-line">
-              <div className="h-9 border-b border-line" />
+              <div style={{ height: HEAD_H }} className="border-b border-line" />
               <div className="relative" style={{ height }}>
                 {hours.map((m) => (
                   <div
                     key={m}
-                    className="absolute right-2 -translate-y-1/2 tabular text-[11px] text-muted"
-                    style={{ top: (m - dayStart) * PX_PER_MIN }}
+                    className="tabular absolute right-2 -translate-y-1/2 text-[11px] text-muted"
+                    style={{ top: (m - dayStart) * pxPerMin }}
                   >
                     {fmt(m)}
                   </div>
@@ -106,7 +131,10 @@ export function TeacherTimeline({
             {/* Weekday columns */}
             {WEEKDAYS.map((wd) => (
               <div key={wd} className="min-w-0 flex-1 border-r border-line last:border-r-0">
-                <div className="flex h-9 items-center border-b border-line px-3 text-xs font-medium uppercase tracking-wide text-muted">
+                <div
+                  style={{ height: HEAD_H }}
+                  className="flex items-center border-b border-line px-3 text-xs font-medium uppercase tracking-wide text-muted"
+                >
                   {WEEKDAY_NAMES[wd]}
                 </div>
                 <div
@@ -120,14 +148,16 @@ export function TeacherTimeline({
                     <div
                       key={m}
                       className="absolute inset-x-0 border-t border-line/60"
-                      style={{ top: (m - dayStart) * PX_PER_MIN }}
+                      style={{ top: (m - dayStart) * pxPerMin }}
                     />
                   ))}
                   {/* lesson blocks */}
                   {byDay(wd).map((l) => {
                     const s = toMin(l.start_time)!;
-                    const e = toMin(l.end_time) ?? s + 30;
+                    const e = Math.max(toMin(l.end_time) ?? s + 15, s + 5);
                     const style = TYPE_STYLE[typeOf(l)] ?? TYPE_STYLE.annet;
+                    const blockH = (e - s) * pxPerMin;
+                    const compact = blockH < 34;
                     return (
                       <button
                         key={l.id}
@@ -135,18 +165,24 @@ export function TeacherTimeline({
                           ev.stopPropagation();
                           setTarget({ lesson: l, weekday: wd });
                         }}
-                        className={`absolute inset-x-1 overflow-hidden rounded-md px-2 py-1 text-left text-[11px] leading-tight ring-1 ${style}`}
+                        className={`absolute inset-x-1 flex flex-col overflow-hidden rounded-md px-2 text-left leading-tight ring-1 ${
+                          compact ? "justify-center py-0" : "py-1"
+                        } ${style}`}
                         style={{
-                          top: (s - dayStart) * PX_PER_MIN + 1,
-                          height: Math.max((e - s) * PX_PER_MIN - 2, 16),
+                          top: (s - dayStart) * pxPerMin + 1,
+                          height: Math.max(blockH - 2, 12),
                         }}
                       >
-                        <div className="truncate font-medium">{l.subject || "Økt"}</div>
-                        <div className="truncate opacity-80">
-                          {[l.class_group, `${l.start_time}–${l.end_time}`]
-                            .filter(Boolean)
-                            .join(" · ")}
+                        <div className="truncate text-[11px] font-medium">
+                          {l.subject || "Økt"}
                         </div>
+                        {!compact && (
+                          <div className="truncate text-[11px] opacity-80">
+                            {[l.class_group, `${l.start_time}–${l.end_time}`]
+                              .filter(Boolean)
+                              .join(" · ")}
+                          </div>
+                        )}
                       </button>
                     );
                   })}
@@ -158,11 +194,7 @@ export function TeacherTimeline({
       </Card>
 
       {target && (
-        <LessonModal
-          teacher={teacher}
-          target={target}
-          onClose={() => setTarget(null)}
-        />
+        <LessonModal teacher={teacher} target={target} onClose={() => setTarget(null)} />
       )}
     </>
   );
@@ -185,9 +217,7 @@ function LessonModal({
   const [subject, setSubject] = useState(lesson?.subject ?? "");
   const [classGroup, setClassGroup] = useState(lesson?.class_group ?? "");
   const [room, setRoom] = useState(lesson?.room ?? "");
-  const [type, setType] = useState(
-    lesson ? typeOf(lesson) : DEFAULT_ACTIVITY_TYPE,
-  );
+  const [type, setType] = useState(lesson ? typeOf(lesson) : DEFAULT_ACTIVITY_TYPE);
   const [startTime, setStartTime] = useState(lesson?.start_time ?? "");
   const [endTime, setEndTime] = useState(lesson?.end_time ?? "");
   const [error, setError] = useState<string | null>(null);
@@ -229,11 +259,7 @@ function LessonModal({
       <form onSubmit={save} className="space-y-4">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Type">
-            <select
-              value={type}
-              onChange={(e) => setType(e.target.value)}
-              className={SELECT_CLS}
-            >
+            <select value={type} onChange={(e) => setType(e.target.value)} className={SELECT_CLS}>
               {ACTIVITY_TYPES.map((a) => (
                 <option key={a.value} value={a.value}>
                   {a.label}

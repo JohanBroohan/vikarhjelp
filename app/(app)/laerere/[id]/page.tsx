@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { Page, PageHeader } from "@/components/ui";
+import { Page } from "@/components/ui";
 import type { Lesson, Teacher } from "@/lib/database.types";
 import { TeacherTimeline } from "./TeacherTimeline";
 
@@ -42,10 +42,6 @@ export default async function TeacherSchedulePage({
           {fromOversikt ? "← Tilbake til oversikt" : "← Tilbake til lærere"}
         </Link>
       </div>
-      <PageHeader
-        title={teacher.name}
-        description="Timeplanen som tidslinje. Klikk på en økt for å endre den, eller på en tom dag for å legge til."
-      />
       <TeacherTimeline
         teacher={teacher as Teacher}
         lessons={(lessons ?? []) as Lesson[]}
