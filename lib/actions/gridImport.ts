@@ -30,8 +30,6 @@ export interface GridParseResult {
   entries: GridEntry[];
   classCount: number;
   otherCount: number;
-  /** Time ranges in the file that didn't match a known slot (informational). */
-  unmatchedTimes: string[];
 }
 
 function pad(hm: string): string {
@@ -125,44 +123,71 @@ export async function parseTeacherGrid(
     }
   }
 
-  const entries: GridEntry[] = [];
-  const unmatched = new Set<string>();
-  let seq = 0;
-
+  // First pass: collect the time rows (in the order they appear) with the
+  // non-empty cells under each weekday.
+  const timeRows: {
+    start: string;
+    end: string;
+    cells: { weekday: number; raw: string }[];
+  }[] = [];
   for (let r = headerRow + 1; r < table.length; r++) {
     const tidRaw = cell(table[r][tidCol]);
     if (!tidRaw) continue;
     const range = parseTimeRange(tidRaw);
     if (!range) continue; // not a time row (could be a spacer)
-    seq += 1;
-    const period = PERIOD_BY_START[range.start] ?? seq;
-    if (PERIOD_BY_START[range.start] === undefined) {
-      unmatched.add(`${range.start}–${range.end}`);
-    }
-
+    const cells: { weekday: number; raw: string }[] = [];
     for (const { col, weekday } of weekdayCols) {
       const raw = cell(table[r][col]);
-      if (!raw) continue;
+      if (raw) cells.push({ weekday, raw });
+    }
+    timeRows.push({ start: range.start, end: range.end, cells });
+  }
+
+  if (timeRows.length === 0) {
+    return { ok: false, error: "Fant ingen timer i rutenettet." };
+  }
+
+  // Assign each row a `period` (its slot number). If every row lines up with the
+  // school's canonical bell times, keep those numbers so standard schools stay
+  // aligned. Otherwise number the rows 1..N in time order, so a school with any
+  // other bell schedule imports cleanly instead of colliding on the
+  // (teacher, weekday, period) key. `period` is capped at 12 by the database.
+  const allMatchKnownSlots = timeRows.every(
+    (row) => PERIOD_BY_START[row.start] !== undefined,
+  );
+  if (!allMatchKnownSlots && timeRows.length > 12) {
+    return {
+      ok: false,
+      error:
+        "Timeplanen har flere enn 12 tidsrader, som ikke støttes ennå. " +
+        "Ta kontakt, så utvider vi grensen.",
+    };
+  }
+
+  const entries: GridEntry[] = [];
+  timeRows.forEach((row, i) => {
+    const period = allMatchKnownSlots ? PERIOD_BY_START[row.start] : i + 1;
+    for (const { weekday, raw } of row.cells) {
       const { subject, classGroup } = splitSubject(raw);
       entries.push({
         weekday,
         weekdayLabel: WEEKDAY_NAMES[weekday],
         period,
-        start: range.start,
-        end: range.end,
+        start: row.start,
+        end: row.end,
         subject,
         classGroup,
         isClass: isClassActivity(subject),
         raw,
       });
     }
-  }
+  });
 
   if (entries.length === 0) {
     return { ok: false, error: "Fant ingen timer i rutenettet." };
   }
 
-  entries.sort((a, b) => a.weekday - b.weekday || a.period - b.period);
+  entries.sort((a, b) => a.weekday - b.weekday || a.start.localeCompare(b.start));
 
   return {
     ok: true,
@@ -171,7 +196,6 @@ export async function parseTeacherGrid(
       entries,
       classCount: entries.filter((e) => e.isClass).length,
       otherCount: entries.filter((e) => !e.isClass).length,
-      unmatchedTimes: [...unmatched],
     },
   };
 }
@@ -213,16 +237,27 @@ export async function commitTeacherGrid(
     .eq("teacher_id", teacherId);
   if (delErr) return { ok: false, error: delErr.message };
 
-  const rows = input.entries.map((e) => ({
-    teacher_id: teacherId!,
-    weekday: e.weekday,
-    period: e.period,
-    start_time: e.start,
-    end_time: e.end,
-    subject: e.subject,
-    class_group: e.classGroup,
-    room: null,
-  }));
+  // Guard against duplicate (weekday, period) rows — Postgres rejects an upsert
+  // that would touch the same conflict key twice ("cannot affect row a second
+  // time"). Keep the first occurrence of each slot.
+  const seenSlots = new Set<string>();
+  const rows = input.entries
+    .filter((e) => {
+      const slot = `${e.weekday}-${e.period}`;
+      if (seenSlots.has(slot)) return false;
+      seenSlots.add(slot);
+      return true;
+    })
+    .map((e) => ({
+      teacher_id: teacherId!,
+      weekday: e.weekday,
+      period: e.period,
+      start_time: e.start,
+      end_time: e.end,
+      subject: e.subject,
+      class_group: e.classGroup,
+      room: null,
+    }));
   const { error: insErr } = await supabase
     .from("lessons")
     .upsert(rows, { onConflict: "teacher_id,weekday,period" });

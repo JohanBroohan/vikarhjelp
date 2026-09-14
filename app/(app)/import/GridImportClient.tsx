@@ -149,14 +149,6 @@ export function GridImportClient({
             <Stat label="Annet (vises kun)" value={result.otherCount} />
           </div>
 
-          {result.unmatchedTimes.length > 0 && (
-            <p className="rounded-xl bg-amber-50 px-4 py-2.5 text-sm text-amber-800 ring-1 ring-amber-600/15">
-              Noen tidsrader samsvarer ikke med skolens faste tider:{" "}
-              {result.unmatchedTimes.join(", ")}. De importeres likevel — sjekk
-              tidene under «Timeplan».
-            </p>
-          )}
-
           <Card className="p-4">
             <Field label="Hvilken lærer gjelder denne timeplanen?">
               <div className="flex flex-col gap-2 sm:flex-row">
