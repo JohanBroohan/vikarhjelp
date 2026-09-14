@@ -7,7 +7,7 @@ import {
   PERIOD_TIMES,
   WEEKDAYS,
   WEEKDAY_NAMES,
-  isClassActivity,
+  lessonIsClass,
   type CoverageStatus,
 } from "@/lib/constants";
 import {
@@ -149,7 +149,7 @@ export function TimetableView({
                         <div className="flex flex-col gap-1">
                           {items.map((l) => {
                             const cover = overlay[l.id];
-                            const isClass = isClassActivity(l.subject);
+                            const isClass = lessonIsClass(l);
                             return (
                               <div
                                 key={l.id}

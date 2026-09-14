@@ -10,7 +10,7 @@ import type {
   Lesson,
   Teacher,
 } from "./database.types";
-import { isClassActivity, needsCoverage, occupiesTeacher } from "./constants";
+import { lessonIsClass, lessonNeedsCoverage, lessonOccupies } from "./constants";
 
 /* -------------------------------------------------------------------------- */
 /* Date helpers (timezone-safe — operate on YYYY-MM-DD strings)               */
@@ -49,7 +49,7 @@ export function buildTeacherOwnPeriods(
   const map = new Map<string, Set<number>>();
   for (const l of lessons) {
     if (l.weekday !== weekday) continue;
-    if (!occupiesTeacher(l.subject)) continue;
+    if (!lessonOccupies(l)) continue;
     let set = map.get(l.teacher_id);
     if (!set) map.set(l.teacher_id, (set = new Set()));
     set.add(l.period);
@@ -126,7 +126,7 @@ export function coTeachersForLesson(
       if (
         l.weekday === lesson.weekday &&
         l.period === lesson.period &&
-        isClassActivity(l.subject) &&
+        lessonIsClass(l) &&
         sameClassGroup(l.class_group, lesson.class_group)
       ) {
         allIds.add(l.teacher_id);
@@ -272,7 +272,7 @@ export function computeCoveragePlan(input: CoveragePlanInput): {
       (l) =>
         l.teacher_id === input.absentTeacherId &&
         l.weekday === weekday &&
-        needsCoverage(l.subject),
+        lessonNeedsCoverage(l),
     )
     .sort((a, b) => a.period - b.period);
 
