@@ -8,8 +8,8 @@ import { NAV_ITEMS, SETTINGS_ITEM, isNavActive } from "./nav-items";
 
 const STORAGE_KEY = "vh:sidebar-collapsed";
 
-const ACTIVE = "bg-surface text-ink shadow-sm ring-1 ring-line";
-const INACTIVE = "text-muted hover:bg-surface/70 hover:text-ink";
+const ACTIVE = "bg-black/[0.08] text-ink dark:bg-white/[0.09]";
+const INACTIVE = "text-ink/70 hover:bg-black/[0.04] hover:text-ink dark:text-muted dark:hover:bg-white/[0.05]";
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -83,7 +83,7 @@ export function Sidebar() {
               key={item.href}
               href={item.href}
               title={collapsed ? item.label : undefined}
-              className={`flex h-9 items-center rounded-xl text-sm font-medium transition ${
+              className={`flex h-9 items-center rounded-lg text-sm font-medium transition ${
                 collapsed ? "justify-center px-0" : "gap-2 px-3"
               } ${active ? ACTIVE : INACTIVE}`}
             >
@@ -99,7 +99,7 @@ export function Sidebar() {
         <button
           onClick={toggle}
           title={collapsed ? "Vis meny" : "Skjul meny"}
-          className={`flex w-full items-center rounded-xl py-2 text-sm font-medium text-muted transition hover:bg-surface/70 hover:text-ink ${
+          className={`flex w-full items-center rounded-lg py-2 text-sm font-medium text-ink/70 transition hover:bg-black/[0.04] hover:text-ink dark:text-muted dark:hover:bg-white/[0.05] ${
             collapsed ? "justify-center px-0" : "gap-3 px-3"
           }`}
         >
@@ -113,7 +113,7 @@ export function Sidebar() {
         <button
           onClick={toggleTheme}
           title={collapsed ? (dark ? "Lyst tema" : "Mørkt tema") : undefined}
-          className={`flex w-full items-center rounded-xl py-2 text-sm font-medium text-muted transition hover:bg-surface/70 hover:text-ink ${
+          className={`flex w-full items-center rounded-lg py-2 text-sm font-medium text-ink/70 transition hover:bg-black/[0.04] hover:text-ink dark:text-muted dark:hover:bg-white/[0.05] ${
             collapsed ? "justify-center px-0" : "gap-3 px-3"
           }`}
         >
@@ -128,7 +128,7 @@ export function Sidebar() {
         <Link
           href={SETTINGS_ITEM.href}
           title={collapsed ? SETTINGS_ITEM.label : undefined}
-          className={`flex w-full items-center rounded-xl py-2 text-sm font-medium transition ${
+          className={`flex w-full items-center rounded-lg py-2 text-sm font-medium transition ${
             collapsed ? "justify-center px-0" : "gap-3 px-3"
           } ${isNavActive(pathname, SETTINGS_ITEM.href) ? ACTIVE : INACTIVE}`}
         >
@@ -140,7 +140,7 @@ export function Sidebar() {
           <button
             type="submit"
             title="Logg ut"
-            className={`flex w-full items-center rounded-xl py-2 text-sm font-medium text-muted transition hover:bg-surface/70 hover:text-ink ${
+            className={`flex w-full items-center rounded-lg py-2 text-sm font-medium text-ink/70 transition hover:bg-black/[0.04] hover:text-ink dark:text-muted dark:hover:bg-white/[0.05] ${
               collapsed ? "justify-center px-0" : "gap-3 px-3"
             }`}
           >

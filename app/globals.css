@@ -11,7 +11,7 @@
 */
 
 @theme {
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 
   /* Accent — single brand colour */
@@ -29,10 +29,10 @@
   /* Warm neutral surfaces. Content sits on `canvas` (a light grey) as white
      `surface` cards framed by `line`, so the surfaces read as distinct panels. */
   --color-surface: #ffffff;
-  --color-canvas: #efeeec;
+  --color-canvas: #ecece9;
   --color-ink: #1c1c1a;
   --color-muted: #6b6b66;
-  --color-line: #e5e4e0;
+  --color-line: #d6d6d6;
 }
 
 :root {

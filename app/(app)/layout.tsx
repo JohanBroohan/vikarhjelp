@@ -27,14 +27,17 @@ export default async function AppLayout({
   if (!membership) redirect("/onboarding");
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-screen overflow-hidden bg-canvas">
       <MobileEntryRedirect />
-      <div className="hidden md:block">
+      <div className="hidden shrink-0 py-3 pl-3 md:block">
         <Sidebar />
       </div>
-      <div className="flex flex-1 flex-col overflow-hidden">
+      {/* Main content sits in a white, rounded "frame" floating on the canvas. */}
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden p-2 md:p-3 md:pl-3">
         <MobileNav />
-        <main className="flex-1 overflow-y-auto">{children}</main>
+        <main className="min-h-0 flex-1 overflow-y-auto rounded-2xl border border-line bg-surface shadow-[0px_1px_2px_0px_rgba(42,53,76,0.05)]">
+          {children}
+        </main>
       </div>
     </div>
   );
