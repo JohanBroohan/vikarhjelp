@@ -5,19 +5,20 @@ import { addDaysISO, todayISO, formatDateLong, capitalize } from "@/lib/format";
 import { DateField } from "@/components/DateField";
 import { ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
 
-const ARROW =
-  "flex h-[26px] w-[26px] items-center justify-center rounded-lg bg-surface text-ink ring-1 ring-line transition hover:bg-canvas dark:text-muted";
+// White outlined button, matching the Figma "Button menu" (0.5px #bbb, 8px).
+const BTN =
+  "rounded-lg border border-[#bbb] text-[#030303] transition hover:bg-black/[0.03] dark:border-line dark:text-muted";
 
 export function DayNav({ date, isToday }: { date: string; isToday: boolean }) {
   const router = useRouter();
   const go = (d: string) => router.push(`/?date=${d}`);
 
   return (
-    <div className="flex items-center gap-4">
+    <div className="flex items-center gap-2">
       <button
         onClick={() => go(addDaysISO(date, -1))}
         aria-label="Forrige dag"
-        className={ARROW}
+        className={`flex h-8 w-8 items-center justify-center ${BTN}`}
       >
         <ChevronLeft className="h-3.5 w-3.5" strokeWidth={2} />
       </button>
@@ -29,13 +30,10 @@ export function DayNav({ date, isToday }: { date: string; isToday: boolean }) {
           <button
             onClick={toggle}
             aria-label="Velg dato"
-            className="flex items-center gap-1 rounded-md px-1 py-1 text-base font-normal text-ink transition hover:bg-canvas"
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-normal ${BTN} dark:text-ink`}
           >
             {capitalize(formatDateLong(date))}
-            <ChevronDown
-              className="h-3.5 w-3.5 shrink-0 text-[#4b4b4b] dark:text-muted"
-              strokeWidth={2}
-            />
+            <ChevronDown className="h-3.5 w-3.5 shrink-0" strokeWidth={2} />
           </button>
         )}
       />
@@ -43,7 +41,7 @@ export function DayNav({ date, isToday }: { date: string; isToday: boolean }) {
       <button
         onClick={() => go(addDaysISO(date, 1))}
         aria-label="Neste dag"
-        className={ARROW}
+        className={`flex h-8 w-8 items-center justify-center ${BTN}`}
       >
         <ChevronRight className="h-3.5 w-3.5" strokeWidth={2} />
       </button>
@@ -51,7 +49,7 @@ export function DayNav({ date, isToday }: { date: string; isToday: boolean }) {
       {!isToday && (
         <button
           onClick={() => go(todayISO())}
-          className="rounded-lg bg-surface px-3 py-1.5 text-sm font-medium text-ink ring-1 ring-line transition hover:bg-canvas"
+          className={`px-3 py-1.5 text-sm font-medium ${BTN}`}
         >
           I dag
         </button>

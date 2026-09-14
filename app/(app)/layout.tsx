@@ -35,7 +35,7 @@ export default async function AppLayout({
       {/* Main content sits in a white, rounded "frame" floating on the canvas. */}
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden p-2 md:p-3 md:pl-3">
         <MobileNav />
-        <main className="min-h-0 flex-1 overflow-y-auto rounded-2xl border border-line bg-surface shadow-[0px_1px_2px_0px_rgba(42,53,76,0.05)]">
+        <main className="min-h-0 flex-1 overflow-y-auto rounded-[16px] border border-[#cececc] bg-[#fafafa] shadow-[0px_8px_28px_0px_rgba(0,0,0,0.04)] dark:border-line dark:bg-surface dark:shadow-none">
           {children}
         </main>
       </div>

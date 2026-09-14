@@ -29,10 +29,10 @@
   /* Warm neutral surfaces. Content sits on `canvas` (a light grey) as white
      `surface` cards framed by `line`, so the surfaces read as distinct panels. */
   --color-surface: #ffffff;
-  --color-canvas: #ecece9;
+  --color-canvas: #f0f0f0;
   --color-ink: #1c1c1a;
   --color-muted: #6b6b66;
-  --color-line: #d6d6d6;
+  --color-line: #e6e5e1;
 }
 
 :root {

@@ -43,7 +43,7 @@ export default async function OversiktPage({
 
         <div className="space-y-4">
           <Card className="px-4 pt-4 pb-1">
-            <h2 className="mb-1 text-base font-normal text-ink">Fravær i dag</h2>
+            <h2 className="mb-1 text-[13px] font-medium text-[#636363]">Fravær i dag</h2>
             {board.sick.length === 0 ? (
               <p className="text-sm text-muted">Ingen fravær registrert i dag.</p>
             ) : (
@@ -98,7 +98,7 @@ export default async function OversiktPage({
           </Card>
 
           <Card className="px-4 pt-4 pb-1">
-            <h2 className="mb-1 text-base font-normal text-ink">
+            <h2 className="mb-1 text-[13px] font-medium text-[#636363]">
               Vikarer på skolen i dag
             </h2>
             {board.vikars.length === 0 ? (

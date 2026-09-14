@@ -62,12 +62,12 @@ export function Sidebar() {
       }`}
     >
       {/* Brand */}
-      <div className={`flex items-center py-5 ${collapsed ? "justify-center px-0" : "gap-2.5 px-5"}`}>
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-brand-600 text-sm font-bold text-white">
+      <div className={`flex items-center py-3 ${collapsed ? "justify-center px-0" : "gap-2 px-4"}`}>
+        <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-[6px] bg-[linear-gradient(143deg,#83a6f3_4%,#2752ac_102%)] text-[11px] font-bold text-white">
           V
         </div>
         {!collapsed && (
-          <span className="text-lg font-medium tracking-tight text-ink">
+          <span className="text-sm font-medium tracking-[-0.45px] text-ink">
             Vikarhjelp
           </span>
         )}
