@@ -35,14 +35,39 @@ export interface GridParseResult {
   otherCount: number;
 }
 
-function pad(hm: string): string {
-  const [h, m] = hm.split(":");
-  return `${h.padStart(2, "0")}:${m}`;
+/** Normalize a single time token to "HH:MM". Accepts 8:30, 08:30, 0830, 8.30. */
+function normTime(tok: string): string | null {
+  const m = tok.match(/^(\d{1,2})[:.]?(\d{2})$/);
+  if (!m) return null;
+  const h = Number(m[1]);
+  const mi = Number(m[2]);
+  if (h > 23 || mi > 59) return null;
+  return `${String(h).padStart(2, "0")}:${String(mi).padStart(2, "0")}`;
 }
 
+const TIME_TOKEN = String.raw`\d{1,2}[:.]?\d{2}`;
+
+/** Parse a time range anywhere in the text (used for a «Tid» column cell). */
 function parseTimeRange(s: string): { start: string; end: string } | null {
-  const m = s.match(/(\d{1,2}:\d{2})\s*[-–—]\s*(\d{1,2}:\d{2})/);
-  return m ? { start: pad(m[1]), end: pad(m[2]) } : null;
+  const m = s.match(new RegExp(`(${TIME_TOKEN})\\s*(?:[-–—]|til)\\s*(${TIME_TOKEN})`, "i"));
+  if (!m) return null;
+  const start = normTime(m[1]);
+  const end = normTime(m[2]);
+  return start && end ? { start, end } : null;
+}
+
+/** Parse a leading "HH:MM-HH:MM" range and return the remaining text after it. */
+function parseLeadingRange(
+  text: string,
+): { start: string; end: string; rest: string } | null {
+  const m = text.match(
+    new RegExp(`^\\s*(${TIME_TOKEN})\\s*(?:[-–—]|til)\\s*(${TIME_TOKEN})`, "i"),
+  );
+  if (!m) return null;
+  const start = normTime(m[1]);
+  const end = normTime(m[2]);
+  if (!start || !end) return null;
+  return { start, end, rest: text.slice(m[0].length).replace(/^[\s:–—-]+/, "").trim() };
 }
 
 /** Split "Matematikk 10. trinn" -> subject "Matematikk", classGroup "10. trinn". */
@@ -84,10 +109,13 @@ export async function parseTeacherGrid(
 
   const cell = (v: unknown) => (v == null ? "" : String(v).trim());
 
-  // Find the header row (the one naming the weekdays) and map columns.
+  // Find the header row (the one naming the weekdays) and map columns. We only
+  // require the weekday row here — the time information can live either in a
+  // dedicated «Tid» column (one shared time per row) or embedded at the start of
+  // each cell ("08:15-09:00 Matematikk"). Both layouts are supported below.
   let headerRow = -1;
   let weekdayCols: { col: number; weekday: number }[] = [];
-  let tidCol = -1;
+  let explicitTidCol = -1;
   for (let r = 0; r < table.length; r++) {
     const cols: { col: number; weekday: number }[] = [];
     let foundTid = -1;
@@ -101,92 +129,189 @@ export async function parseTeacherGrid(
     if (cols.length >= 3) {
       headerRow = r;
       weekdayCols = cols;
-      tidCol = foundTid >= 0 ? foundTid : Math.min(...cols.map((x) => x.col)) - 1;
+      explicitTidCol = foundTid;
       break;
     }
   }
 
-  if (headerRow === -1 || tidCol < 0) {
+  if (headerRow === -1) {
     return {
       ok: false,
       error:
-        "Fant ikke timeplan-rutenettet. Filen må ha en rad med ukedagene (Mandag, Tirsdag …) og en «Tid»-kolonne.",
+        "Fant ikke timeplanen. Filen må ha en rad med ukedagene (Mandag, Tirsdag …).",
     };
   }
 
-  // Teacher name from a "Timeplan for …" cell above the header.
+  const dataRows = table.slice(headerRow + 1);
+
+  // Decide where the times come from. Prefer an explicit «Tid» column; else a
+  // column just left of the weekdays that holds time ranges. Independently, we
+  // measure how many weekday cells begin with their own time range — a per-cell
+  // layout (each cell carries its own clock time).
+  let tidCol = explicitTidCol;
+  if (tidCol < 0) {
+    const leftCol = Math.min(...weekdayCols.map((x) => x.col)) - 1;
+    if (leftCol >= 0) {
+      const timeRowsInLeft = dataRows.filter(
+        (row) => parseTimeRange(cell(row[leftCol])) != null,
+      ).length;
+      if (timeRowsInLeft >= 2) tidCol = leftCol;
+    }
+  }
+
+  let filledCells = 0;
+  let leadingTimeCells = 0;
+  for (const row of dataRows) {
+    for (const { col } of weekdayCols) {
+      const raw = cell(row[col]);
+      if (!raw) continue;
+      filledCells++;
+      if (parseLeadingRange(raw)) leadingTimeCells++;
+    }
+  }
+  const perCellMode =
+    filledCells > 0 &&
+    (leadingTimeCells / filledCells >= 0.5 ||
+      (tidCol < 0 && leadingTimeCells > 0));
+
+  if (!perCellMode && tidCol < 0) {
+    return {
+      ok: false,
+      error:
+        "Fant ingen klokkeslett i timeplanen. Hver time må ha et tidspunkt " +
+        "— enten i en «Tid»-kolonne eller først i hver celle (f.eks. «08:15-09:00 Matematikk»).",
+    };
+  }
+
+  // Teacher name: first a "Timeplan for …" cell, else a lone label above the
+  // grid that isn't a weekday, a time or the «Tid» header.
   let teacherName: string | null = null;
-  for (let r = 0; r <= headerRow; r++) {
+  for (let r = 0; r <= headerRow && !teacherName; r++) {
     for (const raw of table[r]) {
       const m = cell(raw).match(/timeplan\s+for\s+(.+)/i);
       if (m) {
         const name = m[1].trim().replace(/[:.]$/, "").trim();
-        if (name && name.toLowerCase() !== "x") teacherName = name;
+        if (name && name.toLowerCase() !== "x") {
+          teacherName = name;
+          break;
+        }
       }
     }
   }
-
-  // First pass: collect the time rows (in the order they appear) with the
-  // non-empty cells under each weekday.
-  const timeRows: {
-    start: string;
-    end: string;
-    cells: { weekday: number; raw: string }[];
-  }[] = [];
-  for (let r = headerRow + 1; r < table.length; r++) {
-    const tidRaw = cell(table[r][tidCol]);
-    if (!tidRaw) continue;
-    const range = parseTimeRange(tidRaw);
-    if (!range) continue; // not a time row (could be a spacer)
-    const cells: { weekday: number; raw: string }[] = [];
-    for (const { col, weekday } of weekdayCols) {
-      const raw = cell(table[r][col]);
-      if (raw) cells.push({ weekday, raw });
+  if (!teacherName) {
+    for (let r = 0; r < headerRow; r++) {
+      for (const raw of table[r]) {
+        const v = cell(raw);
+        const lower = v.toLowerCase();
+        const isNoise =
+          !v ||
+          lower.includes("timeplan") ||
+          WEEKDAY_ALIASES[lower] != null ||
+          ["tid", "time", "klokkeslett"].includes(lower) ||
+          parseTimeRange(v) != null ||
+          /^\d+[.:]?\d*$/.test(v);
+        if (!isNoise) {
+          teacherName = v;
+          break;
+        }
+      }
+      if (teacherName) break;
     }
-    timeRows.push({ start: range.start, end: range.end, cells });
-  }
-
-  if (timeRows.length === 0) {
-    return { ok: false, error: "Fant ingen timer i rutenettet." };
-  }
-
-  // Assign each row a `period` (its slot number). If every row lines up with the
-  // school's canonical bell times, keep those numbers so standard schools stay
-  // aligned. Otherwise number the rows 1..N in time order, so a school with any
-  // other bell schedule imports cleanly instead of colliding on the
-  // (teacher, weekday, period) key. `period` is capped at 12 by the database.
-  const allMatchKnownSlots = timeRows.every(
-    (row) => PERIOD_BY_START[row.start] !== undefined,
-  );
-  if (!allMatchKnownSlots && timeRows.length > 12) {
-    return {
-      ok: false,
-      error:
-        "Timeplanen har flere enn 12 tidsrader, som ikke støttes ennå. " +
-        "Ta kontakt, så utvider vi grensen.",
-    };
   }
 
   const entries: GridEntry[] = [];
-  timeRows.forEach((row, i) => {
-    const period = allMatchKnownSlots ? PERIOD_BY_START[row.start] : i + 1;
-    for (const { weekday, raw } of row.cells) {
-      const { subject, classGroup } = splitSubject(raw);
+
+  if (perCellMode) {
+    // Each weekday cell carries its own "HH:MM-HH:MM …" time. Build one entry
+    // per cell, sort by weekday+start, and give every entry a globally-unique
+    // period so the editable preview can key each cell's time independently.
+    const cells: {
+      weekday: number;
+      start: string;
+      end: string;
+      raw: string;
+    }[] = [];
+    for (const row of dataRows) {
+      for (const { col, weekday } of weekdayCols) {
+        const raw = cell(row[col]);
+        if (!raw) continue;
+        const led = parseLeadingRange(raw);
+        if (!led) continue; // no time on this cell → can't place it
+        cells.push({ weekday, start: led.start, end: led.end, raw: led.rest || raw });
+      }
+    }
+    if (cells.length === 0) {
+      return { ok: false, error: "Fant ingen timer i rutenettet." };
+    }
+    cells.sort((a, b) => a.weekday - b.weekday || a.start.localeCompare(b.start));
+    cells.forEach((c, i) => {
+      const { subject, classGroup } = splitSubject(c.raw);
       const at = inferActivityType(subject);
       entries.push({
-        weekday,
-        weekdayLabel: WEEKDAY_NAMES[weekday],
-        period,
-        start: row.start,
-        end: row.end,
+        weekday: c.weekday,
+        weekdayLabel: WEEKDAY_NAMES[c.weekday],
+        period: i + 1,
+        start: c.start,
+        end: c.end,
         subject,
         classGroup,
         activityType: at,
         isClass: lessonIsClass({ subject, activity_type: at }),
-        raw,
+        raw: c.raw,
       });
+    });
+  } else {
+    // Shared «Tid» column: one time per row, applied to every weekday cell.
+    const timeRows: {
+      start: string;
+      end: string;
+      cells: { weekday: number; raw: string }[];
+    }[] = [];
+    for (const row of dataRows) {
+      const tidRaw = cell(row[tidCol]);
+      if (!tidRaw) continue;
+      const range = parseTimeRange(tidRaw);
+      if (!range) continue; // not a time row (could be a spacer)
+      const rowCells: { weekday: number; raw: string }[] = [];
+      for (const { col, weekday } of weekdayCols) {
+        const raw = cell(row[col]);
+        if (raw) rowCells.push({ weekday, raw });
+      }
+      timeRows.push({ start: range.start, end: range.end, cells: rowCells });
     }
-  });
+
+    if (timeRows.length === 0) {
+      return { ok: false, error: "Fant ingen timer i rutenettet." };
+    }
+
+    // Assign each row a `period` (its slot number). If every row lines up with
+    // the school's canonical bell times, keep those numbers so standard schools
+    // stay aligned. Otherwise number the rows 1..N in time order, so a school
+    // with any other bell schedule imports cleanly instead of colliding on the
+    // (teacher, weekday, period) key.
+    const allMatchKnownSlots = timeRows.every(
+      (row) => PERIOD_BY_START[row.start] !== undefined,
+    );
+    timeRows.forEach((row, i) => {
+      const period = allMatchKnownSlots ? PERIOD_BY_START[row.start] : i + 1;
+      for (const { weekday, raw } of row.cells) {
+        const { subject, classGroup } = splitSubject(raw);
+        const at = inferActivityType(subject);
+        entries.push({
+          weekday,
+          weekdayLabel: WEEKDAY_NAMES[weekday],
+          period,
+          start: row.start,
+          end: row.end,
+          subject,
+          classGroup,
+          activityType: at,
+          isClass: lessonIsClass({ subject, activity_type: at }),
+          raw,
+        });
+      }
+    });
+  }
 
   if (entries.length === 0) {
     return { ok: false, error: "Fant ingen timer i rutenettet." };
